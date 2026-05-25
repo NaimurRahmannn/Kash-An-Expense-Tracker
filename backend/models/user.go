@@ -75,6 +75,22 @@ func GetUserByEmail(email string) (*User, error) {
 	return nil, nil
 }
 
+// GetUserByID returns a user matching the provided ID, or nil when not found.
+func GetUserByID(id int) (*User, error) {
+	users, err := GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	for index := range users {
+		if users[index].ID == id {
+			return &users[index], nil
+		}
+	}
+
+	return nil, nil
+}
+
 // CreateUser appends a user to the configured CSV file.
 func CreateUser(user *User) error {
 	if user == nil {

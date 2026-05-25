@@ -73,3 +73,19 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 - Expense validation helpers added in `validators`.
 - Expense model and validator tests added beside source files.
 - Expense API endpoints are not added yet; they will be added in the next part.
+
+## Part 5 Completed
+
+- Expense authentication via `X-User-ID` added.
+- Create expense endpoint added at `POST /api/v1/expenses`.
+- Expense validation connected to the API.
+- List, get, update, delete, and summary expense endpoints are not added yet.
+
+Create expense:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/expenses \
+  -H "Content-Type: application/json" \
+  -H "X-User-ID: 1" \
+  -d '{"title":"Lunch","amount":350.50,"category":"Food","note":"Team lunch","expense_date":"2025-06-10"}'
+```

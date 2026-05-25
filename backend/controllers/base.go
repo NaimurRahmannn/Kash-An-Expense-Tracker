@@ -30,7 +30,12 @@ func (c *BaseController) SuccessWithStatus(statusCode int, message string) {
 
 // SuccessWithData sends a successful JSON response with data.
 func (c *BaseController) SuccessWithData(message string, data interface{}) {
-	c.Ctx.Output.SetStatus(200)
+	c.SuccessWithDataAndStatus(200, message, data)
+}
+
+// SuccessWithDataAndStatus sends a successful JSON response with data and the provided HTTP status code.
+func (c *BaseController) SuccessWithDataAndStatus(statusCode int, message string, data interface{}) {
+	c.Ctx.Output.SetStatus(statusCode)
 	c.Data["json"] = apiResponse{
 		Success: true,
 		Message: message,

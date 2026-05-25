@@ -92,6 +92,46 @@ func TestGetUserByEmailReturnsNilForMissingUser(t *testing.T) {
 	}
 }
 
+func TestGetUserByIDFindsExistingUser(t *testing.T) {
+	filePath := useTempUserCSVPath(t)
+	ensureUserCSV(t, filePath)
+
+	rows := [][]string{
+		userCSVHeader,
+		{"1", "John Doe", "john@example.com", "secret123", "2025-06-01T10:30:00Z"},
+	}
+	if err := utils.WriteCSV(filePath, rows); err != nil {
+		t.Fatalf("expected users CSV to be written: %v", err)
+	}
+
+	user, err := GetUserByID(1)
+	if err != nil {
+		t.Fatalf("expected user lookup to succeed: %v", err)
+	}
+
+	if user == nil {
+		t.Fatal("expected user to be found")
+	}
+
+	if user.ID != 1 || user.Email != "john@example.com" {
+		t.Fatalf("expected matching user, got %+v", user)
+	}
+}
+
+func TestGetUserByIDReturnsNilForMissingUser(t *testing.T) {
+	filePath := useTempUserCSVPath(t)
+	ensureUserCSV(t, filePath)
+
+	user, err := GetUserByID(99)
+	if err != nil {
+		t.Fatalf("expected user lookup to succeed: %v", err)
+	}
+
+	if user != nil {
+		t.Fatalf("expected nil user, got %+v", user)
+	}
+}
+
 func TestGetNextIDReturnsOneForEmptyFile(t *testing.T) {
 	filePath := useTempUserCSVPath(t)
 	ensureUserCSV(t, filePath)
