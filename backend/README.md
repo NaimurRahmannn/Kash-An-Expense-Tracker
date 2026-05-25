@@ -1,6 +1,6 @@
 # Expense Tracker API
 
-Personal Expense Tracker API built with Go and Beego. This repository currently contains the Part 1 backend foundation only.
+Personal Expense Tracker API built with Go and Beego. This repository currently contains the backend foundation for the assignment.
 
 ## Tech Stack
 
@@ -30,4 +30,37 @@ go test ./...
 
 ## Storage
 
-CSV is the default required storage for this assignment. The CSV user and expense files are configured in `conf/app.conf` and will be implemented in later parts.
+CSV is the default required storage for this assignment. The CSV user and expense files are configured in `conf/app.conf`.
+
+## Part 2 Completed
+
+- User model added with CSV-backed functions for loading, email lookup, creation, and next ID calculation.
+- Reusable CSV utilities added in `utils`.
+- `users.csv` is created automatically with the required header when user model functions need it.
+- Tests are placed beside the source files in `models` and `utils`.
+
+```bash
+go test ./...
+```
+
+## Part 3 Completed
+
+- Register endpoint added at `POST /api/v1/auth/register`.
+- Login endpoint added at `POST /api/v1/auth/login`.
+- Request validation added for registration and login.
+
+Register:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"secret123"}'
+```
+
+Login:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"secret123"}'
+```

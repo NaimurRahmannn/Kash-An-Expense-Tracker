@@ -15,7 +15,12 @@ type apiResponse struct {
 
 // Success sends a successful JSON response without data.
 func (c *BaseController) Success(message string) {
-	c.Ctx.Output.SetStatus(200)
+	c.SuccessWithStatus(200, message)
+}
+
+// SuccessWithStatus sends a successful JSON response with the provided HTTP status code.
+func (c *BaseController) SuccessWithStatus(statusCode int, message string) {
+	c.Ctx.Output.SetStatus(statusCode)
 	c.Data["json"] = apiResponse{
 		Success: true,
 		Message: message,
