@@ -1,0 +1,5 @@
+backend.exe
+*.exe
+*.test
+data/*.csv
+!data/.gitkeep
