@@ -17,7 +17,8 @@ type ExpenseController struct {
 	BaseController
 }
 
-type createExpenseResponse struct {
+// ExpenseResponse represents expense data returned by the API.
+type ExpenseResponse struct {
 	ID          int     `json:"id"`
 	Title       string  `json:"title"`
 	Amount      float64 `json:"amount"`
@@ -53,14 +54,62 @@ func (c *ExpenseController) Create() {
 		return
 	}
 
-	c.SuccessWithDataAndStatus(http.StatusCreated, "Expense created successfully", createExpenseResponse{
-		ID:          expense.ID,
-		Title:       expense.Title,
-		Amount:      expense.Amount,
-		Category:    expense.Category,
-		Note:        expense.Note,
-		ExpenseDate: expense.ExpenseDate,
-	})
+	c.SuccessWithDataAndStatus(http.StatusCreated, "Expense created successfully", toExpenseResponse(*expense))
+}
+
+// List returns paginated expenses for the authenticated user.
+func (c *ExpenseController) List() {
+	userID, ok := c.getAuthenticatedUserID()
+	if !ok {
+		c.ErrorResponse(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	page, ok := c.parsePositiveQueryInt("page", 1, "Invalid page parameter")
+	if !ok {
+		return
+	}
+	limit, ok := c.parsePositiveQueryInt("limit", 10, "Invalid limit parameter")
+	if !ok {
+		return
+	}
+
+	expenses, err := models.GetExpensesByUserID(userID)
+	if err != nil {
+		logs.Error("failed to list expenses for user ID %d: %v", userID, err)
+		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	c.SuccessWithData("Expenses retrieved", toExpenseResponses(paginateExpenses(expenses, page, limit)))
+}
+
+// GetOne returns one expense owned by the authenticated user.
+func (c *ExpenseController) GetOne() {
+	userID, ok := c.getAuthenticatedUserID()
+	if !ok {
+		c.ErrorResponse(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id, err := strconv.Atoi(strings.TrimSpace(c.Ctx.Input.Param(":id")))
+	if err != nil || id <= 0 {
+		c.ErrorResponse(http.StatusBadRequest, "Invalid expense ID")
+		return
+	}
+
+	expense, err := models.GetExpenseByID(id, userID)
+	if err != nil {
+		logs.Error("failed to get expense ID %d for user ID %d: %v", id, userID, err)
+		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if expense == nil {
+		c.ErrorResponse(http.StatusNotFound, "Expense not found")
+		return
+	}
+
+	c.SuccessWithData("Expense retrieved", toExpenseResponse(*expense))
 }
 
 func (c *ExpenseController) getAuthenticatedUserID() (int, bool) {
@@ -102,6 +151,21 @@ func (c *ExpenseController) parseExpenseInput() (validators.ExpenseInput, bool) 
 	return input, true
 }
 
+func (c *ExpenseController) parsePositiveQueryInt(key string, defaultValue int, errorMessage string) (int, bool) {
+	valueText := strings.TrimSpace(c.Ctx.Input.Query(key))
+	if valueText == "" {
+		return defaultValue, true
+	}
+
+	value, err := strconv.Atoi(valueText)
+	if err != nil || value <= 0 {
+		c.ErrorResponse(http.StatusBadRequest, errorMessage)
+		return 0, false
+	}
+
+	return value, true
+}
+
 func normalizeExpenseInput(input validators.ExpenseInput) validators.ExpenseInput {
 	return validators.ExpenseInput{
 		Title:       strings.TrimSpace(input.Title),
@@ -110,4 +174,38 @@ func normalizeExpenseInput(input validators.ExpenseInput) validators.ExpenseInpu
 		Note:        strings.TrimSpace(input.Note),
 		ExpenseDate: strings.TrimSpace(input.ExpenseDate),
 	}
+}
+
+func toExpenseResponse(expense models.Expense) ExpenseResponse {
+	return ExpenseResponse{
+		ID:          expense.ID,
+		Title:       expense.Title,
+		Amount:      expense.Amount,
+		Category:    expense.Category,
+		Note:        expense.Note,
+		ExpenseDate: expense.ExpenseDate,
+	}
+}
+
+func toExpenseResponses(expenses []models.Expense) []ExpenseResponse {
+	responses := make([]ExpenseResponse, 0, len(expenses))
+	for _, expense := range expenses {
+		responses = append(responses, toExpenseResponse(expense))
+	}
+
+	return responses
+}
+
+func paginateExpenses(expenses []models.Expense, page int, limit int) []models.Expense {
+	start := (page - 1) * limit
+	if start >= len(expenses) {
+		return []models.Expense{}
+	}
+
+	end := start + limit
+	if end > len(expenses) {
+		end = len(expenses)
+	}
+
+	return expenses[start:end]
 }

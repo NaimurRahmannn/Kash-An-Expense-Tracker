@@ -89,3 +89,25 @@ curl -X POST http://localhost:8080/api/v1/expenses \
   -H "X-User-ID: 1" \
   -d '{"title":"Lunch","amount":350.50,"category":"Food","note":"Team lunch","expense_date":"2025-06-10"}'
 ```
+
+## Part 6 Completed
+
+- List expenses endpoint added at `GET /api/v1/expenses`.
+- Get single expense endpoint added at `GET /api/v1/expenses/:id`.
+- Basic pagination added with `page` and `limit` query parameters.
+- Ownership protection added so users can only retrieve their own expenses.
+- Update, delete, filtering, sorting, and summary endpoints are not added yet.
+
+List expenses:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?page=1&limit=10" \
+  -H "X-User-ID: 1"
+```
+
+Get one expense:
+
+```bash
+curl -X GET http://localhost:8080/api/v1/expenses/1 \
+  -H "X-User-ID: 1"
+```

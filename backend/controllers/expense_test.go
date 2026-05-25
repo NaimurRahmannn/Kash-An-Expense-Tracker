@@ -28,6 +28,12 @@ type expenseResponseData struct {
 	ExpenseDate string  `json:"expense_date"`
 }
 
+type expenseListResponse struct {
+	Success bool                  `json:"success"`
+	Message string                `json:"message"`
+	Data    []expenseResponseData `json:"data"`
+}
+
 func TestCreateExpenseSuccessReturnsCreated(t *testing.T) {
 	useTempUserAndExpenseCSVConfig(t)
 	seedAuthenticatedUser(t, 1)
@@ -154,6 +160,245 @@ func TestCreateExpenseInvalidExpenseDateReturnsBadRequest(t *testing.T) {
 	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid expense date format")
 }
 
+func TestListExpensesSuccessReturnsOK(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedExpense(t, 1, "Lunch")
+
+	rec := getWithHeaders("/api/v1/expenses", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if !response.Success {
+		t.Fatal("expected success to be true")
+	}
+	if response.Message != "Expenses retrieved" {
+		t.Fatalf("expected message %q, got %q", "Expenses retrieved", response.Message)
+	}
+	if len(response.Data) != 1 {
+		t.Fatalf("expected one expense, got %d", len(response.Data))
+	}
+}
+
+func TestListExpensesReturnsOnlyAuthenticatedUsersExpenses(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedAuthenticatedUser(t, 2)
+	seedExpense(t, 1, "Lunch")
+	seedExpense(t, 2, "Bus")
+
+	rec := getWithHeaders("/api/v1/expenses", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 1 {
+		t.Fatalf("expected one expense, got %d", len(response.Data))
+	}
+	if response.Data[0].Title != "Lunch" {
+		t.Fatalf("expected authenticated user's expense, got %+v", response.Data[0])
+	}
+}
+
+func TestListExpensesWithNoExpensesReturnsEmptyArray(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 0 {
+		t.Fatalf("expected empty expenses, got %d", len(response.Data))
+	}
+}
+
+func TestListExpensesDefaultPaginationWorks(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	for i := 0; i < 11; i++ {
+		seedExpense(t, 1, "Lunch")
+	}
+
+	rec := getWithHeaders("/api/v1/expenses", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 10 {
+		t.Fatalf("expected default limit of 10 expenses, got %d", len(response.Data))
+	}
+}
+
+func TestListExpensesPageOneLimitOneReturnsFirstItem(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedExpense(t, 1, "Lunch")
+	seedExpense(t, 1, "Dinner")
+
+	rec := getWithHeaders("/api/v1/expenses?page=1&limit=1", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 1 || response.Data[0].Title != "Lunch" {
+		t.Fatalf("expected first expense, got %+v", response.Data)
+	}
+}
+
+func TestListExpensesPageTwoLimitOneReturnsSecondItem(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedExpense(t, 1, "Lunch")
+	seedExpense(t, 1, "Dinner")
+
+	rec := getWithHeaders("/api/v1/expenses?page=2&limit=1", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 1 || response.Data[0].Title != "Dinner" {
+		t.Fatalf("expected second expense, got %+v", response.Data)
+	}
+}
+
+func TestListExpensesBeyondAvailableDataReturnsEmptyArray(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedExpense(t, 1, "Lunch")
+
+	rec := getWithHeaders("/api/v1/expenses?page=2&limit=10", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 0 {
+		t.Fatalf("expected empty expenses, got %d", len(response.Data))
+	}
+}
+
+func TestListExpensesInvalidPageReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?page=0", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid page parameter")
+}
+
+func TestListExpensesInvalidLimitReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?limit=abc", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid limit parameter")
+}
+
+func TestListExpensesMissingUserIDReturnsUnauthorized(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses", nil)
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusUnauthorized, "Unauthorized")
+}
+
+func TestGetOneExpenseSuccessReturnsOK(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	expense := seedExpense(t, 1, "Lunch")
+
+	rec := getWithHeaders("/api/v1/expenses/1", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if !response.Success {
+		t.Fatal("expected success to be true")
+	}
+	if response.Message != "Expense retrieved" {
+		t.Fatalf("expected message %q, got %q", "Expense retrieved", response.Message)
+	}
+	if response.Data.ID != expense.ID || response.Data.Title != "Lunch" {
+		t.Fatalf("unexpected expense response data: %+v", response.Data)
+	}
+}
+
+func TestGetOneExpenseReturnsOnlyOwnersExpense(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedAuthenticatedUser(t, 2)
+	seedExpense(t, 1, "Lunch")
+	expense := seedExpense(t, 2, "Bus")
+
+	rec := getWithHeaders("/api/v1/expenses/2", map[string]string{"X-User-ID": "2"})
+	response := decodeExpenseResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if response.Data.ID != expense.ID || response.Data.Title != "Bus" {
+		t.Fatalf("expected owner's expense, got %+v", response.Data)
+	}
+}
+
+func TestGetOneAnotherUsersExpenseReturnsNotFound(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedAuthenticatedUser(t, 2)
+	seedExpense(t, 2, "Bus")
+
+	rec := getWithHeaders("/api/v1/expenses/1", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusNotFound, "Expense not found")
+}
+
+func TestGetOneMissingExpenseReturnsNotFound(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/99", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusNotFound, "Expense not found")
+}
+
+func TestGetOneInvalidIDReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/abc", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid expense ID")
+}
+
+func TestGetOneMissingUserIDReturnsUnauthorized(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedExpense(t, 1, "Lunch")
+
+	rec := getWithHeaders("/api/v1/expenses/1", nil)
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusUnauthorized, "Unauthorized")
+}
+
 func useTempUserAndExpenseCSVConfig(t *testing.T) {
 	t.Helper()
 
@@ -188,9 +433,39 @@ func seedAuthenticatedUser(t *testing.T, userID int) {
 	}
 }
 
+func seedExpense(t *testing.T, userID int, title string) models.Expense {
+	t.Helper()
+
+	expense := &models.Expense{
+		UserID:      userID,
+		Title:       title,
+		Amount:      350.50,
+		Category:    "Food",
+		Note:        "Team lunch",
+		ExpenseDate: "2025-06-10",
+	}
+	if err := models.CreateExpense(expense); err != nil {
+		t.Fatalf("expected expense to be seeded: %v", err)
+	}
+
+	return *expense
+}
+
 func postJSONWithHeaders(path string, body string, headers map[string]string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	rec := httptest.NewRecorder()
+
+	beego.BeeApp.Handlers.ServeHTTP(rec, req)
+
+	return rec
+}
+
+func getWithHeaders(path string, headers map[string]string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, path, nil)
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
@@ -205,6 +480,17 @@ func decodeExpenseResponse(t *testing.T, rec *httptest.ResponseRecorder) expense
 	t.Helper()
 
 	var response expenseResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	return response
+}
+
+func decodeExpenseListResponse(t *testing.T, rec *httptest.ResponseRecorder) expenseListResponse {
+	t.Helper()
+
+	var response expenseListResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
