@@ -64,3 +64,12 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"john@example.com","password":"secret123"}'
 ```
+
+## Part 4 Completed
+
+- Expense model added with CSV-backed storage functions.
+- Allowed expense categories added.
+- Expense create, read, update, delete storage functions added in `models`.
+- Expense validation helpers added in `validators`.
+- Expense model and validator tests added beside source files.
+- Expense API endpoints are not added yet; they will be added in the next part.
