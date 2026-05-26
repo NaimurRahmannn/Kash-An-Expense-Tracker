@@ -453,8 +453,8 @@ The project includes unit and integration-style tests for controllers, models, v
 
 ### Coverage Screenshots
 
-![Test coverage result](docs/images/test-coverage1.png)
-![Test coverage result](docs/images/test-coverage2.png)
+![Test coverage result](../docs/images/test-coverage1.png)
+![Test coverage result](../docs/images/test-coverage2.png)
 
 ## Notes
 
