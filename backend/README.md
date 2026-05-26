@@ -1,81 +1,221 @@
+<div align="center">
+
 # Expense Tracker API
 
-Personal Expense Tracker API built with Go and Beego. This repository currently contains the backend foundation for the assignment.
+Personal Expense Tracker backend API built with Go, Beego v2, and CSV storage.
+
+![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Beego](https://img.shields.io/badge/Beego-v2-2D3748?style=for-the-badge)
+![Storage](https://img.shields.io/badge/Storage-CSV-0F766E?style=for-the-badge)
+![Coverage](https://img.shields.io/badge/Coverage-92.1%25-16A34A?style=for-the-badge)
+
+</div>
+
+---
+
+## Overview
+
+This API provides the required backend for a Personal Expense Tracker assignment. It supports user registration, login, CSV-backed expense CRUD, pagination, filtering, sorting, and spending summaries.
+
+> The backend is API-only and keeps configuration in `conf/app.conf`.
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [Installation](#installation)
+- [Running the API](#running-the-api)
+- [Response Format](#response-format)
+- [Authentication](#authentication)
+- [API Endpoints](#api-endpoints)
+- [Request Examples](#request-examples)
+- [Postman Testing](#postman-testing)
+- [CSV Storage](#csv-storage)
+- [Testing](#testing)
+- [Test Coverage](#test-coverage)
+- [Notes](#notes)
+
+## Features
+
+| Area | Supported |
+| --- | --- |
+| Health check | Yes |
+| User registration | Yes |
+| User login | Yes |
+| Expense CRUD | Yes |
+| Pagination | Yes |
+| Category filtering | Yes |
+| Date range filtering | Yes |
+| Sorting | Yes |
+| Spending summary | Yes |
+| CSV storage | Yes |
 
 ## Tech Stack
 
-- Go 1.22+
-- Beego v2
-- CSV storage configured as the default required storage
+| Technology | Purpose |
+| --- | --- |
+| Go 1.22+ | Backend language |
+| Beego v2 | Web framework and routing |
+| CSV | Required assignment storage |
+| Go testing package | Unit and integration-style tests |
 
-## Install Dependencies
+## Project Structure
+
+```text
+backend/
+|-- conf/
+|   `-- app.conf
+|-- controllers/
+|-- data/
+|   `-- .gitkeep
+|-- models/
+|-- routers/
+|-- utils/
+|-- validators/
+|-- main.go
+|-- go.mod
+|-- go.sum
+`-- README.md
+```
+
+## Configuration
+
+Configuration is stored in `conf/app.conf`.
+
+```ini
+appname = expense-tracker-api
+httpport = 8080
+runmode = dev
+copyrequestbody = true
+
+storage_driver = csv
+csv_user_file = data/users.csv
+csv_expense_file = data/expenses.csv
+```
+
+> CSV is the default storage for this assignment. The application creates required CSV files automatically when model functions need them.
+
+## Installation
+
+Install or tidy dependencies:
 
 ```bash
 go mod tidy
 ```
 
-## Run
+## Running the API
+
+Start the Beego application:
 
 ```bash
 bee run
 ```
 
-The API starts on the port configured in `conf/app.conf`.
+The API runs on the port configured in `conf/app.conf`.
 
-## Test
+Default local base URL:
 
-```bash
-go test ./...
+```text
+http://localhost:8080
 ```
 
-## Testing
+## Response Format
 
-Run all tests:
+All endpoints use a consistent JSON response shape.
 
-```bash
-go test ./...
+### Success
+
+```json
+{
+  "success": true,
+  "message": "..."
+}
 ```
 
-Run tests with coverage:
+### Success with Data
 
-```bash
-go test ./... -cover
+```json
+{
+  "success": true,
+  "message": "...",
+  "data": {}
+}
 ```
 
-Run vet:
+### Error
 
-```bash
-go vet ./...
+```json
+{
+  "success": false,
+  "message": "..."
+}
 ```
 
-Format code:
+## Authentication
 
-```bash
-gofmt -w .
+Registration and login do not require headers.
+
+Expense endpoints require the authenticated user ID in the request header:
+
+```http
+X-User-ID: 1
 ```
 
-## Storage
+Unauthorized response:
 
-CSV is the default required storage for this assignment. The CSV user and expense files are configured in `conf/app.conf`.
-
-## Part 2 Completed
-
-- User model added with CSV-backed functions for loading, email lookup, creation, and next ID calculation.
-- Reusable CSV utilities added in `utils`.
-- `users.csv` is created automatically with the required header when user model functions need it.
-- Tests are placed beside the source files in `models` and `utils`.
-
-```bash
-go test ./...
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
 ```
 
-## Part 3 Completed
+## API Endpoints
 
-- Register endpoint added at `POST /api/v1/auth/register`.
-- Login endpoint added at `POST /api/v1/auth/login`.
-- Request validation added for registration and login.
+| Method | Endpoint | Description | Auth |
+| --- | --- | --- | --- |
+| GET | `/api/v1/health` | Check server status | No |
+| POST | `/api/v1/auth/register` | Register a user | No |
+| POST | `/api/v1/auth/login` | Login a user | No |
+| POST | `/api/v1/expenses` | Create an expense | `X-User-ID` |
+| GET | `/api/v1/expenses` | List expenses | `X-User-ID` |
+| GET | `/api/v1/expenses/summary` | Generate spending summary | `X-User-ID` |
+| GET | `/api/v1/expenses/:id` | Get one expense | `X-User-ID` |
+| PUT | `/api/v1/expenses/:id` | Update an expense | `X-User-ID` |
+| DELETE | `/api/v1/expenses/:id` | Delete an expense | `X-User-ID` |
 
-Register:
+### List Expense Query Parameters
+
+| Parameter | Format | Description |
+| --- | --- | --- |
+| `page` | Positive integer | Page number. Default: `1` |
+| `limit` | Positive integer | Items per page. Default: `10` |
+| `category` | Allowed category | Filter by expense category |
+| `date_from` | `YYYY-MM-DD` | Include expenses on or after this date |
+| `date_to` | `YYYY-MM-DD` | Include expenses on or before this date |
+| `sort_by` | `amount` or `expense_date` | Sort field |
+| `sort_order` | `asc` or `desc` | Sort direction. Default: `desc` |
+
+## Request Examples
+
+### Health Check
+
+```bash
+curl http://localhost:8080/api/v1/health
+```
+
+Expected response:
+
+```json
+{
+  "success": true,
+  "message": "Server is running"
+}
+```
+
+### Register
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/register \
@@ -83,7 +223,7 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
   -d '{"name":"John Doe","email":"john@example.com","password":"secret123"}'
 ```
 
-Login:
+### Login
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
@@ -91,23 +231,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -d '{"email":"john@example.com","password":"secret123"}'
 ```
 
-## Part 4 Completed
-
-- Expense model added with CSV-backed storage functions.
-- Allowed expense categories added.
-- Expense create, read, update, delete storage functions added in `models`.
-- Expense validation helpers added in `validators`.
-- Expense model and validator tests added beside source files.
-- Expense API endpoints are not added yet; they will be added in the next part.
-
-## Part 5 Completed
-
-- Expense authentication via `X-User-ID` added.
-- Create expense endpoint added at `POST /api/v1/expenses`.
-- Expense validation connected to the API.
-- List, get, update, delete, and summary expense endpoints are not added yet.
-
-Create expense:
+### Create Expense
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/expenses \
@@ -116,37 +240,42 @@ curl -X POST http://localhost:8080/api/v1/expenses \
   -d '{"title":"Lunch","amount":350.50,"category":"Food","note":"Team lunch","expense_date":"2025-06-10"}'
 ```
 
-## Part 6 Completed
-
-- List expenses endpoint added at `GET /api/v1/expenses`.
-- Get single expense endpoint added at `GET /api/v1/expenses/:id`.
-- Basic pagination added with `page` and `limit` query parameters.
-- Ownership protection added so users can only retrieve their own expenses.
-- Update, delete, filtering, sorting, and summary endpoints are not added yet.
-
-List expenses:
+### List Expenses
 
 ```bash
 curl -X GET "http://localhost:8080/api/v1/expenses?page=1&limit=10" \
   -H "X-User-ID: 1"
 ```
 
-Get one expense:
+### Filter by Category
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?category=Food" \
+  -H "X-User-ID: 1"
+```
+
+### Filter by Date Range
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?date_from=2025-06-01&date_to=2025-06-30" \
+  -H "X-User-ID: 1"
+```
+
+### Sort by Amount
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?sort_by=amount&sort_order=desc" \
+  -H "X-User-ID: 1"
+```
+
+### Get One Expense
 
 ```bash
 curl -X GET http://localhost:8080/api/v1/expenses/1 \
   -H "X-User-ID: 1"
 ```
 
-## Part 7 Completed
-
-- Update expense endpoint added at `PUT /api/v1/expenses/:id`.
-- Delete expense endpoint added at `DELETE /api/v1/expenses/:id`.
-- Ownership protection confirmed for update and delete.
-- CSV rewrite pattern is used for update and delete.
-- Filtering, sorting, and summary endpoints are not added yet.
-
-Update expense:
+### Update Expense
 
 ```bash
 curl -X PUT http://localhost:8080/api/v1/expenses/1 \
@@ -155,71 +284,176 @@ curl -X PUT http://localhost:8080/api/v1/expenses/1 \
   -d '{"title":"Dinner","amount":500.00,"category":"Food","note":"Family dinner","expense_date":"2025-06-11"}'
 ```
 
-Delete expense:
+### Delete Expense
 
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/expenses/1 \
   -H "X-User-ID: 1"
 ```
 
-## Part 8 Completed
-
-- Expense filtering added for category and date range.
-- Expense sorting added for amount and expense date.
-- Filtering and sorting are applied before pagination.
-- Ownership protection still applies to expense listing.
-- Summary endpoint is not added yet.
-
-Filter by category:
-
-```bash
-curl -X GET "http://localhost:8080/api/v1/expenses?category=Food" \
-  -H "X-User-ID: 1"
-```
-
-Filter by date range:
-
-```bash
-curl -X GET "http://localhost:8080/api/v1/expenses?date_from=2025-06-01&date_to=2025-06-30" \
-  -H "X-User-ID: 1"
-```
-
-Sort by amount:
-
-```bash
-curl -X GET "http://localhost:8080/api/v1/expenses?sort_by=amount&sort_order=desc" \
-  -H "X-User-ID: 1"
-```
-
-Combined:
-
-```bash
-curl -X GET "http://localhost:8080/api/v1/expenses?category=Food&date_from=2025-06-01&sort_by=amount&sort_order=desc&page=1&limit=10" \
-  -H "X-User-ID: 1"
-```
-
-## Part 9 Completed
-
-- Spending summary endpoint added at `GET /api/v1/expenses/summary`.
-- Summary requires `date_from` and `date_to`.
-- Summary is protected by `X-User-ID`.
-- Summary groups spending by category.
-- Summary only includes the authenticated user's expenses.
-- Bonus features are not added yet.
-
-Summary:
+### Spending Summary
 
 ```bash
 curl -X GET "http://localhost:8080/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30" \
   -H "X-User-ID: 1"
 ```
 
-## Part 10 Completed
+## Postman Testing
 
-- Test coverage improved above the assignment target.
-- Table-driven tests added and cleaned where practical.
-- Tests are placed beside source files.
-- `go test ./...` passes.
-- `go vet ./...` passes.
-- Response format consistency verified.
-- Bonus features are not added.
+Use this section to test the API manually in Postman.
+
+### Environment Variables
+
+Create a Postman environment with these variables:
+
+| Variable | Value |
+| --- | --- |
+| `base_url` | `http://localhost:8080` |
+| `user_id` | `1` |
+
+### Suggested Test Order
+
+| Step | Method | URL |
+| --- | --- | --- |
+| 1 | GET | `{{base_url}}/api/v1/health` |
+| 2 | POST | `{{base_url}}/api/v1/auth/register` |
+| 3 | POST | `{{base_url}}/api/v1/auth/login` |
+| 4 | POST | `{{base_url}}/api/v1/expenses` |
+| 5 | GET | `{{base_url}}/api/v1/expenses?page=1&limit=10` |
+| 6 | GET | `{{base_url}}/api/v1/expenses/1` |
+| 7 | PUT | `{{base_url}}/api/v1/expenses/1` |
+| 8 | GET | `{{base_url}}/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30` |
+| 9 | DELETE | `{{base_url}}/api/v1/expenses/1` |
+
+### Auth Requests
+
+Register request body:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+Login request body:
+
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+### Expense Request Headers
+
+For all expense endpoints, add this header in Postman:
+
+| Key | Value |
+| --- | --- |
+| `X-User-ID` | `{{user_id}}` |
+
+For requests with a JSON body, also add:
+
+| Key | Value |
+| --- | --- |
+| `Content-Type` | `application/json` |
+
+### Expense Request Bodies
+
+Create expense body:
+
+```json
+{
+  "title": "Lunch",
+  "amount": 350.50,
+  "category": "Food",
+  "note": "Team lunch",
+  "expense_date": "2025-06-10"
+}
+```
+
+Update expense body:
+
+```json
+{
+  "title": "Dinner",
+  "amount": 500.00,
+  "category": "Food",
+  "note": "Family dinner",
+  "expense_date": "2025-06-11"
+}
+```
+
+Expected successful health response:
+
+```json
+{
+  "success": true,
+  "message": "Server is running"
+}
+```
+
+Expected unauthorized response when `X-User-ID` is missing or invalid:
+
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
+```
+
+## CSV Storage
+
+### User CSV Format
+
+```text
+id,name,email,password,created_at
+```
+
+### Expense CSV Format
+
+```text
+id,user_id,title,amount,category,note,expense_date,created_at
+```
+
+### Allowed Expense Categories
+
+| Category |
+| --- |
+| Food |
+| Transport |
+| Housing |
+| Entertainment |
+| Shopping |
+| Healthcare |
+| Education |
+| Utilities |
+| Other |
+
+Generated CSV files are ignored by Git so local test and runtime data are not committed.
+
+## Testing
+
+| Command | Purpose |
+| --- | --- |
+| `go test ./...` | Run all tests |
+| `go test ./... -cover` | Run tests with package coverage |
+| `go test ./... -coverprofile=coverage.out` | Generate coverage profile |
+| `go tool cover -func coverage.out` | Show function-level coverage |
+| `go vet ./...` | Run static checks |
+| `gofmt -w .` | Format Go files |
+
+## Test Coverage
+
+Total statement coverage: **92.1%**
+
+The project includes unit and integration-style tests for controllers, models, validators, CSV utilities, and route registration.
+
+## Notes
+
+> This backend intentionally stays assignment-focused and does not include bonus features.
+
+- Passwords are stored as plain text for assignment compatibility at this stage.
+- Postgres, Docker, Swagger, frontend, voice input, budget features, and export features are not included.
