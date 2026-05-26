@@ -14,7 +14,7 @@ func init() {
 			beego.NSRouter("/login", &controllers.AuthController{}, "post:Login"),
 		),
 		beego.NSRouter("/expenses", &controllers.ExpenseController{}, "get:List;post:Create"),
-		beego.NSRouter("/expenses/:id", &controllers.ExpenseController{}, "get:GetOne"),
+		beego.NSRouter("/expenses/:id", &controllers.ExpenseController{}, "get:GetOne;put:Update;delete:Delete"),
 	)
 
 	beego.AddNamespace(ns)

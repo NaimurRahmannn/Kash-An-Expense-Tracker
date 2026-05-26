@@ -111,3 +111,27 @@ Get one expense:
 curl -X GET http://localhost:8080/api/v1/expenses/1 \
   -H "X-User-ID: 1"
 ```
+
+## Part 7 Completed
+
+- Update expense endpoint added at `PUT /api/v1/expenses/:id`.
+- Delete expense endpoint added at `DELETE /api/v1/expenses/:id`.
+- Ownership protection confirmed for update and delete.
+- CSV rewrite pattern is used for update and delete.
+- Filtering, sorting, and summary endpoints are not added yet.
+
+Update expense:
+
+```bash
+curl -X PUT http://localhost:8080/api/v1/expenses/1 \
+  -H "Content-Type: application/json" \
+  -H "X-User-ID: 1" \
+  -d '{"title":"Dinner","amount":500.00,"category":"Food","note":"Family dinner","expense_date":"2025-06-11"}'
+```
+
+Delete expense:
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/expenses/1 \
+  -H "X-User-ID: 1"
+```

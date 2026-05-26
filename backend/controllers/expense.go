@@ -92,9 +92,8 @@ func (c *ExpenseController) GetOne() {
 		return
 	}
 
-	id, err := strconv.Atoi(strings.TrimSpace(c.Ctx.Input.Param(":id")))
-	if err != nil || id <= 0 {
-		c.ErrorResponse(http.StatusBadRequest, "Invalid expense ID")
+	id, ok := c.parseExpenseIDParam()
+	if !ok {
 		return
 	}
 
@@ -110,6 +109,72 @@ func (c *ExpenseController) GetOne() {
 	}
 
 	c.SuccessWithData("Expense retrieved", toExpenseResponse(*expense))
+}
+
+// Update updates an expense owned by the authenticated user.
+func (c *ExpenseController) Update() {
+	userID, ok := c.getAuthenticatedUserID()
+	if !ok {
+		c.ErrorResponse(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id, ok := c.parseExpenseIDParam()
+	if !ok {
+		return
+	}
+
+	existingExpense, ok := c.getExistingExpense(id, userID, "Failed to update expense")
+	if !ok {
+		return
+	}
+
+	input, ok := c.parseExpenseInput()
+	if !ok {
+		return
+	}
+
+	updatedExpense := &models.Expense{
+		ID:          existingExpense.ID,
+		UserID:      existingExpense.UserID,
+		Title:       input.Title,
+		Amount:      input.Amount,
+		Category:    input.Category,
+		Note:        input.Note,
+		ExpenseDate: input.ExpenseDate,
+		CreatedAt:   existingExpense.CreatedAt,
+	}
+	if err := models.UpdateExpense(updatedExpense); err != nil {
+		c.handleExpenseWriteError(err, "Failed to update expense")
+		return
+	}
+
+	c.SuccessWithData("Expense updated successfully", toExpenseResponse(*updatedExpense))
+}
+
+// Delete deletes an expense owned by the authenticated user.
+func (c *ExpenseController) Delete() {
+	userID, ok := c.getAuthenticatedUserID()
+	if !ok {
+		c.ErrorResponse(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id, ok := c.parseExpenseIDParam()
+	if !ok {
+		return
+	}
+
+	if _, ok := c.getExistingExpense(id, userID, "Failed to delete expense"); !ok {
+		return
+	}
+
+	if err := models.DeleteExpense(id, userID); err != nil {
+		c.handleExpenseWriteError(err, "Failed to delete expense")
+		return
+	}
+
+	c.Success("Expense deleted successfully")
 }
 
 func (c *ExpenseController) getAuthenticatedUserID() (int, bool) {
@@ -133,6 +198,41 @@ func (c *ExpenseController) getAuthenticatedUserID() (int, bool) {
 	}
 
 	return userID, true
+}
+
+func (c *ExpenseController) parseExpenseIDParam() (int, bool) {
+	id, err := strconv.Atoi(strings.TrimSpace(c.Ctx.Input.Param(":id")))
+	if err != nil || id <= 0 {
+		c.ErrorResponse(http.StatusBadRequest, "Invalid expense ID")
+		return 0, false
+	}
+
+	return id, true
+}
+
+func (c *ExpenseController) getExistingExpense(id int, userID int, internalMessage string) (*models.Expense, bool) {
+	expense, err := models.GetExpenseByID(id, userID)
+	if err != nil {
+		logs.Error("failed to get expense ID %d for user ID %d: %v", id, userID, err)
+		c.ErrorResponse(http.StatusInternalServerError, internalMessage)
+		return nil, false
+	}
+	if expense == nil {
+		c.ErrorResponse(http.StatusNotFound, "Expense not found")
+		return nil, false
+	}
+
+	return expense, true
+}
+
+func (c *ExpenseController) handleExpenseWriteError(err error, internalMessage string) {
+	if isExpenseNotFoundError(err) {
+		c.ErrorResponse(http.StatusNotFound, "Expense not found")
+		return
+	}
+
+	logs.Error("%s: %v", strings.ToLower(internalMessage), err)
+	c.ErrorResponse(http.StatusInternalServerError, internalMessage)
 }
 
 func (c *ExpenseController) parseExpenseInput() (validators.ExpenseInput, bool) {
@@ -208,4 +308,8 @@ func paginateExpenses(expenses []models.Expense, page int, limit int) []models.E
 	}
 
 	return expenses[start:end]
+}
+
+func isExpenseNotFoundError(err error) bool {
+	return err != nil && err.Error() == "expense not found"
 }
