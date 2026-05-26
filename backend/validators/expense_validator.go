@@ -27,6 +27,12 @@ type ExpenseQueryParams struct {
 	Limit     int
 }
 
+// SummaryQueryParams represents required query parameters for expense summaries.
+type SummaryQueryParams struct {
+	DateFrom string
+	DateTo   string
+}
+
 // ValidateExpenseInput validates expense request data.
 func ValidateExpenseInput(input ExpenseInput) string {
 	if strings.TrimSpace(input.Title) == "" {
@@ -76,6 +82,27 @@ func ValidateExpenseQueryParams(params ExpenseQueryParams) string {
 	}
 	if params.Limit <= 0 {
 		return "Invalid limit parameter"
+	}
+
+	return ""
+}
+
+// ValidateSummaryQueryParams validates expense summary query parameters.
+func ValidateSummaryQueryParams(params SummaryQueryParams) string {
+	if strings.TrimSpace(params.DateFrom) == "" {
+		return "date_from is required"
+	}
+	if strings.TrimSpace(params.DateTo) == "" {
+		return "date_to is required"
+	}
+	if !IsValidExpenseDate(params.DateFrom) {
+		return "Invalid date_from format"
+	}
+	if !IsValidExpenseDate(params.DateTo) {
+		return "Invalid date_to format"
+	}
+	if isDateFromAfterDateTo(params.DateFrom, params.DateTo) {
+		return "date_from cannot be after date_to"
 	}
 
 	return ""

@@ -187,6 +187,44 @@ func TestValidateExpenseQueryParamsInvalidLimit(t *testing.T) {
 	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid limit parameter")
 }
 
+func TestValidateSummaryQueryParamsValid(t *testing.T) {
+	params := SummaryQueryParams{DateFrom: "2025-06-01", DateTo: "2025-06-30"}
+
+	if message := ValidateSummaryQueryParams(params); message != "" {
+		t.Fatalf("expected valid summary query params, got %q", message)
+	}
+}
+
+func TestValidateSummaryQueryParamsMissingDateFrom(t *testing.T) {
+	params := SummaryQueryParams{DateTo: "2025-06-30"}
+
+	assertExpenseValidationMessage(t, ValidateSummaryQueryParams(params), "date_from is required")
+}
+
+func TestValidateSummaryQueryParamsMissingDateTo(t *testing.T) {
+	params := SummaryQueryParams{DateFrom: "2025-06-01"}
+
+	assertExpenseValidationMessage(t, ValidateSummaryQueryParams(params), "date_to is required")
+}
+
+func TestValidateSummaryQueryParamsInvalidDateFrom(t *testing.T) {
+	params := SummaryQueryParams{DateFrom: "2025/06/01", DateTo: "2025-06-30"}
+
+	assertExpenseValidationMessage(t, ValidateSummaryQueryParams(params), "Invalid date_from format")
+}
+
+func TestValidateSummaryQueryParamsInvalidDateTo(t *testing.T) {
+	params := SummaryQueryParams{DateFrom: "2025-06-01", DateTo: "2025/06/30"}
+
+	assertExpenseValidationMessage(t, ValidateSummaryQueryParams(params), "Invalid date_to format")
+}
+
+func TestValidateSummaryQueryParamsDateFromAfterDateTo(t *testing.T) {
+	params := SummaryQueryParams{DateFrom: "2025-06-30", DateTo: "2025-06-01"}
+
+	assertExpenseValidationMessage(t, ValidateSummaryQueryParams(params), "date_from cannot be after date_to")
+}
+
 func assertExpenseValidationMessage(t *testing.T, actual string, expected string) {
 	t.Helper()
 

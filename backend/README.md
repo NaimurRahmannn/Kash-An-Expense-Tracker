@@ -171,3 +171,19 @@ Combined:
 curl -X GET "http://localhost:8080/api/v1/expenses?category=Food&date_from=2025-06-01&sort_by=amount&sort_order=desc&page=1&limit=10" \
   -H "X-User-ID: 1"
 ```
+
+## Part 9 Completed
+
+- Spending summary endpoint added at `GET /api/v1/expenses/summary`.
+- Summary requires `date_from` and `date_to`.
+- Summary is protected by `X-User-ID`.
+- Summary groups spending by category.
+- Summary only includes the authenticated user's expenses.
+- Bonus features are not added yet.
+
+Summary:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30" \
+  -H "X-User-ID: 1"
+```

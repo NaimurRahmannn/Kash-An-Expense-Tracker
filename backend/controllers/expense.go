@@ -28,6 +28,22 @@ type ExpenseResponse struct {
 	ExpenseDate string  `json:"expense_date"`
 }
 
+// CategorySummaryResponse represents summary totals for one category.
+type CategorySummaryResponse struct {
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
+	Count    int     `json:"count"`
+}
+
+// ExpenseSummaryResponse represents spending summary data returned by the API.
+type ExpenseSummaryResponse struct {
+	DateFrom    string                    `json:"date_from"`
+	DateTo      string                    `json:"date_to"`
+	TotalAmount float64                   `json:"total_amount"`
+	TotalCount  int                       `json:"total_count"`
+	ByCategory  []CategorySummaryResponse `json:"by_category"`
+}
+
 // Create creates an expense for the authenticated user.
 func (c *ExpenseController) Create() {
 	userID, ok := c.getAuthenticatedUserID()
@@ -83,6 +99,29 @@ func (c *ExpenseController) List() {
 	paginatedExpenses := paginateExpenses(sortedExpenses, params.Page, params.Limit)
 
 	c.SuccessWithData("Expenses retrieved", toExpenseResponses(paginatedExpenses))
+}
+
+// Summary returns spending totals for the authenticated user in a date range.
+func (c *ExpenseController) Summary() {
+	userID, ok := c.getAuthenticatedUserID()
+	if !ok {
+		c.ErrorResponse(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	params, ok := c.parseSummaryQueryParams()
+	if !ok {
+		return
+	}
+
+	expenses, err := models.GetExpensesByUserID(userID)
+	if err != nil {
+		logs.Error("failed to summarize expenses for user ID %d: %v", userID, err)
+		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	c.SuccessWithData("Summary generated", buildExpenseSummary(expenses, params))
 }
 
 // GetOne returns one expense owned by the authenticated user.
@@ -274,6 +313,20 @@ func (c *ExpenseController) parseExpenseQueryParams() (validators.ExpenseQueryPa
 	return params, true
 }
 
+func (c *ExpenseController) parseSummaryQueryParams() (validators.SummaryQueryParams, bool) {
+	params := validators.SummaryQueryParams{
+		DateFrom: strings.TrimSpace(c.Ctx.Input.Query("date_from")),
+		DateTo:   strings.TrimSpace(c.Ctx.Input.Query("date_to")),
+	}
+
+	if message := validators.ValidateSummaryQueryParams(params); message != "" {
+		c.ErrorResponse(http.StatusBadRequest, message)
+		return params, false
+	}
+
+	return params, true
+}
+
 func normalizeExpenseInput(input validators.ExpenseInput) validators.ExpenseInput {
 	return validators.ExpenseInput{
 		Title:       strings.TrimSpace(input.Title),
@@ -370,6 +423,42 @@ func paginateExpenses(expenses []models.Expense, page int, limit int) []models.E
 	}
 
 	return expenses[start:end]
+}
+
+func buildExpenseSummary(expenses []models.Expense, params validators.SummaryQueryParams) ExpenseSummaryResponse {
+	summary := ExpenseSummaryResponse{
+		DateFrom:   params.DateFrom,
+		DateTo:     params.DateTo,
+		ByCategory: []CategorySummaryResponse{},
+	}
+	categorySummaries := make(map[string]CategorySummaryResponse)
+
+	for _, expense := range expenses {
+		if expense.ExpenseDate < params.DateFrom || expense.ExpenseDate > params.DateTo {
+			continue
+		}
+
+		summary.TotalAmount += expense.Amount
+		summary.TotalCount++
+
+		categorySummary := categorySummaries[expense.Category]
+		categorySummary.Category = expense.Category
+		categorySummary.Total += expense.Amount
+		categorySummary.Count++
+		categorySummaries[expense.Category] = categorySummary
+	}
+
+	categories := make([]string, 0, len(categorySummaries))
+	for category := range categorySummaries {
+		categories = append(categories, category)
+	}
+	sort.Strings(categories)
+
+	for _, category := range categories {
+		summary.ByCategory = append(summary.ByCategory, categorySummaries[category])
+	}
+
+	return summary
 }
 
 func isExpenseNotFoundError(err error) bool {

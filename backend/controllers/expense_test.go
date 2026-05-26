@@ -34,6 +34,26 @@ type expenseListResponse struct {
 	Data    []expenseResponseData `json:"data"`
 }
 
+type expenseSummaryResponse struct {
+	Success bool                       `json:"success"`
+	Message string                     `json:"message"`
+	Data    expenseSummaryResponseData `json:"data"`
+}
+
+type expenseSummaryResponseData struct {
+	DateFrom    string                    `json:"date_from"`
+	DateTo      string                    `json:"date_to"`
+	TotalAmount float64                   `json:"total_amount"`
+	TotalCount  int                       `json:"total_count"`
+	ByCategory  []categorySummaryResponse `json:"by_category"`
+}
+
+type categorySummaryResponse struct {
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
+	Count    int     `json:"count"`
+}
+
 func TestCreateExpenseSuccessReturnsCreated(t *testing.T) {
 	useTempUserAndExpenseCSVConfig(t)
 	seedAuthenticatedUser(t, 1)
@@ -565,6 +585,193 @@ func TestListExpensesFilterSortAndPaginationTogether(t *testing.T) {
 	}
 }
 
+func TestSummarySuccessReturnsOK(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if !response.Success {
+		t.Fatal("expected success to be true")
+	}
+	if response.Message != "Summary generated" {
+		t.Fatalf("expected message %q, got %q", "Summary generated", response.Message)
+	}
+	if response.Data.DateFrom != "2025-06-01" || response.Data.DateTo != "2025-06-30" {
+		t.Fatalf("unexpected summary date range: %+v", response.Data)
+	}
+}
+
+func TestSummaryCalculatesTotalAmountCorrectly(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Bus", 25, "Transport", "2025-06-11")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if response.Data.TotalAmount != 375.50 {
+		t.Fatalf("expected total amount 375.50, got %.2f", response.Data.TotalAmount)
+	}
+}
+
+func TestSummaryCalculatesTotalCountCorrectly(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Bus", 25, "Transport", "2025-06-11")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if response.Data.TotalCount != 2 {
+		t.Fatalf("expected total count 2, got %d", response.Data.TotalCount)
+	}
+}
+
+func TestSummaryGroupsByCategoryWithTotalAndCount(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-11")
+	seedCustomExpense(t, 1, "Bus", 25, "Transport", "2025-06-12")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if len(response.Data.ByCategory) != 2 {
+		t.Fatalf("expected two category summaries, got %+v", response.Data.ByCategory)
+	}
+	assertCategorySummary(t, response.Data.ByCategory[0], "Food", 850.50, 2)
+	assertCategorySummary(t, response.Data.ByCategory[1], "Transport", 25, 1)
+}
+
+func TestSummaryIncludesOnlyAuthenticatedUsersExpenses(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedAuthenticatedUser(t, 2)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 2, "Dinner", 500, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if response.Data.TotalAmount != 350.50 || response.Data.TotalCount != 1 {
+		t.Fatalf("expected only authenticated user's expenses, got %+v", response.Data)
+	}
+}
+
+func TestSummaryIncludesOnlyExpensesInsideDateRange(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Breakfast", 100, "Food", "2025-05-31")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-07-01")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if response.Data.TotalAmount != 350.50 || response.Data.TotalCount != 1 {
+		t.Fatalf("expected only expenses inside date range, got %+v", response.Data)
+	}
+}
+
+func TestSummaryDateRangeIsInclusive(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Start", 100, "Food", "2025-06-01")
+	seedCustomExpense(t, 1, "End", 200, "Food", "2025-06-30")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if response.Data.TotalAmount != 300 || response.Data.TotalCount != 2 {
+		t.Fatalf("expected inclusive date range totals, got %+v", response.Data)
+	}
+}
+
+func TestSummaryWithNoMatchingExpensesReturnsEmptyTotals(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-05-10")
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseSummaryResponse(t, rec)
+
+	if response.Data.TotalAmount != 0 || response.Data.TotalCount != 0 {
+		t.Fatalf("expected empty totals, got %+v", response.Data)
+	}
+	if len(response.Data.ByCategory) != 0 {
+		t.Fatalf("expected empty by_category, got %+v", response.Data.ByCategory)
+	}
+}
+
+func TestSummaryMissingUserIDReturnsUnauthorized(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", nil)
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusUnauthorized, "Unauthorized")
+}
+
+func TestSummaryMissingDateFromReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "date_from is required")
+}
+
+func TestSummaryMissingDateToReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "date_to is required")
+}
+
+func TestSummaryInvalidDateFromReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025/06/01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid date_from format")
+}
+
+func TestSummaryInvalidDateToReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025/06/30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid date_to format")
+}
+
+func TestSummaryDateFromAfterDateToReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-30&date_to=2025-06-01", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "date_from cannot be after date_to")
+}
+
 func TestGetOneExpenseSuccessReturnsOK(t *testing.T) {
 	useTempUserAndExpenseCSVConfig(t)
 	seedAuthenticatedUser(t, 1)
@@ -1021,6 +1228,17 @@ func decodeExpenseListResponse(t *testing.T, rec *httptest.ResponseRecorder) exp
 	return response
 }
 
+func decodeExpenseSummaryResponse(t *testing.T, rec *httptest.ResponseRecorder) expenseSummaryResponse {
+	t.Helper()
+
+	var response expenseSummaryResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	return response
+}
+
 func assertExpenseErrorResponse(t *testing.T, statusCode int, response expenseResponse, expectedStatus int, expectedMessage string) {
 	t.Helper()
 
@@ -1032,6 +1250,20 @@ func assertExpenseErrorResponse(t *testing.T, statusCode int, response expenseRe
 	}
 	if response.Message != expectedMessage {
 		t.Fatalf("expected message %q, got %q", expectedMessage, response.Message)
+	}
+}
+
+func assertCategorySummary(t *testing.T, actual categorySummaryResponse, expectedCategory string, expectedTotal float64, expectedCount int) {
+	t.Helper()
+
+	if actual.Category != expectedCategory {
+		t.Fatalf("expected category %q, got %q", expectedCategory, actual.Category)
+	}
+	if actual.Total != expectedTotal {
+		t.Fatalf("expected total %.2f for %q, got %.2f", expectedTotal, expectedCategory, actual.Total)
+	}
+	if actual.Count != expectedCount {
+		t.Fatalf("expected count %d for %q, got %d", expectedCount, expectedCategory, actual.Count)
 	}
 }
 
