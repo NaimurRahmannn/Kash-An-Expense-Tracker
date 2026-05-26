@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -178,6 +179,53 @@ func TestCreateExpenseInvalidExpenseDateReturnsBadRequest(t *testing.T) {
 	response := decodeExpenseResponse(t, rec)
 
 	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid expense date format")
+}
+
+func TestCreateExpenseAdditionalValidationFailuresReturnBadRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		body        string
+		wantMessage string
+	}{
+		{
+			name:        "negative amount",
+			body:        `{"title":"Lunch","amount":-1,"category":"Food","note":"Team lunch","expense_date":"2025-06-10"}`,
+			wantMessage: "Amount must be positive",
+		},
+		{
+			name:        "missing category",
+			body:        `{"title":"Lunch","amount":350.50,"note":"Team lunch","expense_date":"2025-06-10"}`,
+			wantMessage: "Category is required",
+		},
+		{
+			name:        "missing expense_date",
+			body:        `{"title":"Lunch","amount":350.50,"category":"Food","note":"Team lunch"}`,
+			wantMessage: "Expense date is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			useTempUserAndExpenseCSVConfig(t)
+			seedAuthenticatedUser(t, 1)
+
+			rec := postJSONWithHeaders("/api/v1/expenses", tt.body, map[string]string{"X-User-ID": "1"})
+			response := decodeExpenseResponse(t, rec)
+
+			assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, tt.wantMessage)
+		})
+	}
+}
+
+func TestCreateExpenseModelWriteFailureReturnsInternalServerError(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	useExpenseCSVDirectoryPath(t)
+
+	rec := postJSONWithHeaders("/api/v1/expenses", validExpenseRequestBody(), map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusInternalServerError, "Internal server error")
 }
 
 func TestListExpensesSuccessReturnsOK(t *testing.T) {
@@ -772,6 +820,17 @@ func TestSummaryDateFromAfterDateToReturnsBadRequest(t *testing.T) {
 	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "date_from cannot be after date_to")
 }
 
+func TestSummaryModelReadFailureReturnsInternalServerError(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	useExpenseCSVDirectoryPath(t)
+
+	rec := getWithHeaders("/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusInternalServerError, "Internal server error")
+}
+
 func TestGetOneExpenseSuccessReturnsOK(t *testing.T) {
 	useTempUserAndExpenseCSVConfig(t)
 	seedAuthenticatedUser(t, 1)
@@ -1115,6 +1174,23 @@ func useTempUserAndExpenseCSVConfig(t *testing.T) {
 	t.Cleanup(func() {
 		_ = beego.AppConfig.Set("csv_user_file", previousUserPath)
 		_ = beego.AppConfig.Set("csv_expense_file", previousExpensePath)
+	})
+}
+
+func useExpenseCSVDirectoryPath(t *testing.T) {
+	t.Helper()
+
+	previousPath := beego.AppConfig.DefaultString("csv_expense_file", "data/expenses.csv")
+	directoryPath := filepath.Join(t.TempDir(), "expenses-as-directory")
+	if err := os.MkdirAll(directoryPath, 0755); err != nil {
+		t.Fatalf("expected expense directory path to be created: %v", err)
+	}
+	if err := beego.AppConfig.Set("csv_expense_file", directoryPath); err != nil {
+		t.Fatalf("expected csv_expense_file test config to be set: %v", err)
+	}
+
+	t.Cleanup(func() {
+		_ = beego.AppConfig.Set("csv_expense_file", previousPath)
 	})
 }
 

@@ -28,6 +28,32 @@ The API starts on the port configured in `conf/app.conf`.
 go test ./...
 ```
 
+## Testing
+
+Run all tests:
+
+```bash
+go test ./...
+```
+
+Run tests with coverage:
+
+```bash
+go test ./... -cover
+```
+
+Run vet:
+
+```bash
+go vet ./...
+```
+
+Format code:
+
+```bash
+gofmt -w .
+```
+
 ## Storage
 
 CSV is the default required storage for this assignment. The CSV user and expense files are configured in `conf/app.conf`.
@@ -187,3 +213,13 @@ Summary:
 curl -X GET "http://localhost:8080/api/v1/expenses/summary?date_from=2025-06-01&date_to=2025-06-30" \
   -H "X-User-ID: 1"
 ```
+
+## Part 10 Completed
+
+- Test coverage improved above the assignment target.
+- Table-driven tests added and cleaned where practical.
+- Tests are placed beside source files.
+- `go test ./...` passes.
+- `go vet ./...` passes.
+- Response format consistency verified.
+- Bonus features are not added.

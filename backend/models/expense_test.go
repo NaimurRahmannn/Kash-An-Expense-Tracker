@@ -1,11 +1,14 @@
 package models
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"backend/utils"
+
+	beego "github.com/beego/beego/v2/server/web"
 )
 
 func TestGetExpensesByUserIDReturnsEmptySliceWhenOnlyHeaderExists(t *testing.T) {
@@ -19,6 +22,79 @@ func TestGetExpensesByUserIDReturnsEmptySliceWhenOnlyHeaderExists(t *testing.T) 
 
 	if len(expenses) != 0 {
 		t.Fatalf("expected no expenses, got %d", len(expenses))
+	}
+}
+
+func TestGetExpensesByUserIDReturnsErrorForInvalidAmount(t *testing.T) {
+	filePath := useTempExpenseCSVPath(t)
+	writeExpenseRows(t, filePath, [][]string{
+		expenseCSVHeader,
+		{"1", "1", "Lunch", "invalid", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+	})
+
+	if _, err := GetExpensesByUserID(1); err == nil {
+		t.Fatal("expected invalid amount to return an error")
+	}
+}
+
+func TestGetExpensesByUserIDReturnsErrorsForMalformedRows(t *testing.T) {
+	tests := []struct {
+		name string
+		row  []string
+	}{
+		{
+			name: "invalid id",
+			row:  []string{"bad", "1", "Lunch", "350.50", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+		},
+		{
+			name: "invalid user id",
+			row:  []string{"1", "bad", "Lunch", "350.50", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+		},
+		{
+			name: "invalid amount",
+			row:  []string{"1", "1", "Lunch", "bad", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+		},
+		{
+			name: "too few columns",
+			row:  []string{"1", "1", "Lunch"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filePath := useTempExpenseCSVPath(t)
+			writeExpenseRows(t, filePath, [][]string{
+				expenseCSVHeader,
+				tt.row,
+			})
+
+			if _, err := GetExpensesByUserID(1); err == nil {
+				t.Fatal("expected malformed expense row to return an error")
+			}
+		})
+	}
+}
+
+func TestGetExpensesByUserIDReturnsErrorWhenCSVPathIsDirectory(t *testing.T) {
+	previous := expenseCSVFilePathOverride
+	expenseCSVFilePathOverride = t.TempDir()
+	t.Cleanup(func() {
+		expenseCSVFilePathOverride = previous
+	})
+
+	if _, err := GetExpensesByUserID(1); err == nil {
+		t.Fatal("expected directory expense CSV path to return an error")
+	}
+}
+
+func TestReadExpenseRowsReturnsEnsureFileError(t *testing.T) {
+	parentPath := filepath.Join(t.TempDir(), "parent")
+	if err := os.WriteFile(parentPath, []byte("not a directory"), 0644); err != nil {
+		t.Fatalf("expected parent file to be written: %v", err)
+	}
+
+	if _, err := readExpenseRows(filepath.Join(parentPath, "expenses.csv")); err == nil {
+		t.Fatal("expected invalid parent path to return an error")
 	}
 }
 
@@ -60,6 +136,14 @@ func TestCreateExpenseWritesExpenseToCSV(t *testing.T) {
 	}
 }
 
+func TestCreateExpenseRequiresExpense(t *testing.T) {
+	useTempExpenseCSVPath(t)
+
+	if err := CreateExpense(nil); err == nil {
+		t.Fatal("expected nil expense to return an error")
+	}
+}
+
 func TestGetExpensesByUserIDReturnsOnlyRequestedUser(t *testing.T) {
 	filePath := useTempExpenseCSVPath(t)
 	writeExpenseRows(t, filePath, [][]string{
@@ -78,6 +162,22 @@ func TestGetExpensesByUserIDReturnsOnlyRequestedUser(t *testing.T) {
 	}
 	if expenses[0].ID != 1 || expenses[0].UserID != 1 {
 		t.Fatalf("expected user 1 expense, got %+v", expenses[0])
+	}
+}
+
+func TestGetExpensesByUserIDReturnsEmptySliceForUnknownUser(t *testing.T) {
+	filePath := useTempExpenseCSVPath(t)
+	writeExpenseRows(t, filePath, [][]string{
+		expenseCSVHeader,
+		{"1", "1", "Lunch", "350.50", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+	})
+
+	expenses, err := GetExpensesByUserID(99)
+	if err != nil {
+		t.Fatalf("expected expenses to load: %v", err)
+	}
+	if len(expenses) != 0 {
+		t.Fatalf("expected no expenses for unknown user, got %+v", expenses)
 	}
 }
 
@@ -113,6 +213,22 @@ func TestGetExpenseByIDReturnsNilForAnotherUsersExpense(t *testing.T) {
 		t.Fatalf("expected expense lookup to succeed: %v", err)
 	}
 
+	if expense != nil {
+		t.Fatalf("expected nil expense, got %+v", expense)
+	}
+}
+
+func TestGetExpenseByIDReturnsNilForMissingExpense(t *testing.T) {
+	filePath := useTempExpenseCSVPath(t)
+	writeExpenseRows(t, filePath, [][]string{
+		expenseCSVHeader,
+		{"1", "1", "Lunch", "350.50", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+	})
+
+	expense, err := GetExpenseByID(99, 1)
+	if err != nil {
+		t.Fatalf("expected expense lookup to succeed: %v", err)
+	}
 	if expense != nil {
 		t.Fatalf("expected nil expense, got %+v", expense)
 	}
@@ -208,6 +324,30 @@ func TestUpdateExpenseDoesNotUpdateAnotherUsersExpense(t *testing.T) {
 	}
 }
 
+func TestUpdateExpenseReturnsNotFoundWhenExpenseDoesNotExist(t *testing.T) {
+	filePath := useTempExpenseCSVPath(t)
+	writeExpenseRows(t, filePath, [][]string{
+		expenseCSVHeader,
+		{"1", "1", "Lunch", "350.50", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+	})
+
+	err := UpdateExpense(&Expense{
+		ID:          99,
+		UserID:      1,
+		Title:       "Dinner",
+		Amount:      420,
+		Category:    "Food",
+		Note:        "Family dinner",
+		ExpenseDate: "2025-06-12",
+	})
+	if err == nil {
+		t.Fatal("expected expense not found error")
+	}
+	if err.Error() != "expense not found" {
+		t.Fatalf("expected expense not found error, got %q", err.Error())
+	}
+}
+
 func TestDeleteExpenseDeletesMatchingExpense(t *testing.T) {
 	filePath := useTempExpenseCSVPath(t)
 	writeExpenseRows(t, filePath, [][]string{
@@ -258,6 +398,93 @@ func TestDeleteExpenseDoesNotDeleteAnotherUsersExpense(t *testing.T) {
 	}
 	if expense == nil {
 		t.Fatal("expected another user's expense to remain")
+	}
+}
+
+func TestDeleteExpenseReturnsNotFoundWhenExpenseDoesNotExist(t *testing.T) {
+	filePath := useTempExpenseCSVPath(t)
+	writeExpenseRows(t, filePath, [][]string{
+		expenseCSVHeader,
+		{"1", "1", "Lunch", "350.50", "Food", "Team lunch", "2025-06-10", "2025-06-10T14:30:00Z"},
+	})
+
+	err := DeleteExpense(99, 1)
+	if err == nil {
+		t.Fatal("expected expense not found error")
+	}
+	if err.Error() != "expense not found" {
+		t.Fatalf("expected expense not found error, got %q", err.Error())
+	}
+}
+
+func TestExpenseModelUsesConfiguredCSVPath(t *testing.T) {
+	previousOverride := expenseCSVFilePathOverride
+	expenseCSVFilePathOverride = ""
+
+	previousPath := beego.AppConfig.DefaultString("csv_expense_file", "data/expenses.csv")
+	filePath := filepath.Join(t.TempDir(), "configured-expenses.csv")
+	if err := beego.AppConfig.Set("csv_expense_file", filePath); err != nil {
+		t.Fatalf("expected csv_expense_file config to be set: %v", err)
+	}
+
+	t.Cleanup(func() {
+		expenseCSVFilePathOverride = previousOverride
+		_ = beego.AppConfig.Set("csv_expense_file", previousPath)
+	})
+
+	if err := CreateExpense(&Expense{
+		UserID:      1,
+		Title:       "Config Lunch",
+		Amount:      350.50,
+		Category:    "Food",
+		Note:        "Team lunch",
+		ExpenseDate: "2025-06-10",
+	}); err != nil {
+		t.Fatalf("expected expense to be created using configured path: %v", err)
+	}
+
+	rows, err := utils.ReadCSV(filePath)
+	if err != nil {
+		t.Fatalf("expected configured expenses CSV to be readable: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("expected header and one expense row, got %d rows", len(rows))
+	}
+}
+
+func TestGetExpenseCSVFilePathUsesOverride(t *testing.T) {
+	previous := expenseCSVFilePathOverride
+	filePath := filepath.Join(t.TempDir(), "override-expenses.csv")
+	expenseCSVFilePathOverride = filePath
+	t.Cleanup(func() {
+		expenseCSVFilePathOverride = previous
+	})
+
+	got, err := getExpenseCSVFilePath()
+	if err != nil {
+		t.Fatalf("expected override path to load: %v", err)
+	}
+	if got != filePath {
+		t.Fatalf("expected override path %q, got %q", filePath, got)
+	}
+}
+
+func TestGetExpenseCSVFilePathReturnsErrorWhenConfigBlank(t *testing.T) {
+	previousOverride := expenseCSVFilePathOverride
+	expenseCSVFilePathOverride = ""
+
+	previousPath := beego.AppConfig.DefaultString("csv_expense_file", "data/expenses.csv")
+	if err := beego.AppConfig.Set("csv_expense_file", "  "); err != nil {
+		t.Fatalf("expected csv_expense_file config to be set: %v", err)
+	}
+
+	t.Cleanup(func() {
+		expenseCSVFilePathOverride = previousOverride
+		_ = beego.AppConfig.Set("csv_expense_file", previousPath)
+	})
+
+	if _, err := getExpenseCSVFilePath(); err == nil {
+		t.Fatal("expected blank csv_expense_file config to return an error")
 	}
 }
 

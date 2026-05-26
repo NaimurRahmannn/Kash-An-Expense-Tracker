@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -85,6 +87,50 @@ func TestRegisterShortPasswordReturnsBadRequest(t *testing.T) {
 	assertErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Password must be at least 6 characters")
 }
 
+func TestRegisterValidationFailuresReturnBadRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		body        string
+		wantMessage string
+	}{
+		{
+			name:        "missing email",
+			body:        `{"name":"John Doe","password":"secret123"}`,
+			wantMessage: "Email is required",
+		},
+		{
+			name:        "missing password",
+			body:        `{"name":"John Doe","email":"john@example.com"}`,
+			wantMessage: "Password is required",
+		},
+		{
+			name:        "invalid JSON",
+			body:        `{"name":"John Doe"`,
+			wantMessage: "Invalid request body",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			useTempUserCSVConfig(t)
+
+			rec := postJSON("/api/v1/auth/register", tt.body)
+			response := decodeAuthResponse(t, rec)
+
+			assertErrorResponse(t, rec.Code, response, http.StatusBadRequest, tt.wantMessage)
+		})
+	}
+}
+
+func TestRegisterReturnsInternalServerErrorWhenUserLookupFails(t *testing.T) {
+	useMalformedUserCSVConfig(t)
+
+	rec := postJSON("/api/v1/auth/register", `{"name":"John Doe","email":"john@example.com","password":"secret123"}`)
+	response := decodeAuthResponse(t, rec)
+
+	assertErrorResponse(t, rec.Code, response, http.StatusInternalServerError, "Internal server error")
+}
+
 func TestLoginSuccessReturnsUserData(t *testing.T) {
 	useTempUserCSVConfig(t)
 
@@ -109,6 +155,9 @@ func TestLoginSuccessReturnsUserData(t *testing.T) {
 	}
 	if response.Data.Email != "john@example.com" {
 		t.Fatalf("expected email %q, got %q", "john@example.com", response.Data.Email)
+	}
+	if strings.Contains(rec.Body.String(), "secret123") || strings.Contains(rec.Body.String(), "password") {
+		t.Fatal("expected login response to omit password")
 	}
 }
 
@@ -140,12 +189,74 @@ func TestAuthInvalidJSONReturnsBadRequest(t *testing.T) {
 	assertErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid request body")
 }
 
+func TestLoginValidationFailuresReturnBadRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		body        string
+		wantMessage string
+	}{
+		{
+			name:        "invalid email",
+			body:        `{"email":"invalid-email","password":"secret123"}`,
+			wantMessage: "Invalid email format",
+		},
+		{
+			name:        "missing password",
+			body:        `{"email":"john@example.com"}`,
+			wantMessage: "Password is required",
+		},
+		{
+			name:        "invalid JSON",
+			body:        `{"email":"john@example.com"`,
+			wantMessage: "Invalid request body",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			useTempUserCSVConfig(t)
+
+			rec := postJSON("/api/v1/auth/login", tt.body)
+			response := decodeAuthResponse(t, rec)
+
+			assertErrorResponse(t, rec.Code, response, http.StatusBadRequest, tt.wantMessage)
+		})
+	}
+}
+
+func TestLoginReturnsInternalServerErrorWhenUserLookupFails(t *testing.T) {
+	useMalformedUserCSVConfig(t)
+
+	rec := postJSON("/api/v1/auth/login", `{"email":"john@example.com","password":"secret123"}`)
+	response := decodeAuthResponse(t, rec)
+
+	assertErrorResponse(t, rec.Code, response, http.StatusInternalServerError, "Internal server error")
+}
+
 func useTempUserCSVConfig(t *testing.T) {
 	t.Helper()
 
 	previousPath := beego.AppConfig.DefaultString("csv_user_file", "data/users.csv")
 	filePath := filepath.Join(t.TempDir(), "users.csv")
 
+	if err := beego.AppConfig.Set("csv_user_file", filePath); err != nil {
+		t.Fatalf("expected csv_user_file test config to be set: %v", err)
+	}
+
+	t.Cleanup(func() {
+		_ = beego.AppConfig.Set("csv_user_file", previousPath)
+	})
+}
+
+func useMalformedUserCSVConfig(t *testing.T) {
+	t.Helper()
+
+	previousPath := beego.AppConfig.DefaultString("csv_user_file", "data/users.csv")
+	filePath := filepath.Join(t.TempDir(), "users.csv")
+	content := "id,name,email,password,created_at\nbad-id,John Doe,john@example.com,secret123,2025-06-01T10:30:00Z\n"
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatalf("expected malformed users CSV to be written: %v", err)
+	}
 	if err := beego.AppConfig.Set("csv_user_file", filePath); err != nil {
 		t.Fatalf("expected csv_user_file test config to be set: %v", err)
 	}
