@@ -75,6 +75,7 @@ backend/validators/expense_validator.go:152.56,154.3 1 1
 backend/validators/expense_validator.go:155.2,155.86 1 1
 backend/validators/expense_validator.go:155.86,157.3 1 0
 backend/validators/expense_validator.go:159.2,159.46 1 1
+backend/routers/router.go:9.13,22.2 2 1
 backend/models/expense.go:46.57,48.16 2 1
 backend/models/expense.go:48.16,50.3 1 1
 backend/models/expense.go:52.2,53.35 2 1
@@ -228,7 +229,6 @@ backend/models/user.go:182.28,183.37 1 1
 backend/models/user.go:183.37,185.4 1 1
 backend/models/user.go:188.2,188.13 1 1
 backend/main.go:9.13,11.2 1 0
-backend/routers/router.go:9.13,22.2 2 1
 backend/utils/csv.go:10.63,11.45 1 1
 backend/utils/csv.go:11.45,13.3 1 1
 backend/utils/csv.go:13.8,13.32 1 1
