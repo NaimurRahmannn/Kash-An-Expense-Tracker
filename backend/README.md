@@ -451,11 +451,10 @@ Total statement coverage: **92.1%**
 
 The project includes unit and integration-style tests for controllers, models, validators, CSV utilities, and route registration.
 
-```md
-### Coverage Screenshot
+### Coverage Screenshots
 
 ![Test coverage result](docs/images/test-coverage1.png)
-![](docs/images/test-coverage2.png)
+![Test coverage result](docs/images/test-coverage2.png)
 
 ## Notes
 
