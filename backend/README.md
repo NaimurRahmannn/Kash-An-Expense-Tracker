@@ -135,3 +135,39 @@ Delete expense:
 curl -X DELETE http://localhost:8080/api/v1/expenses/1 \
   -H "X-User-ID: 1"
 ```
+
+## Part 8 Completed
+
+- Expense filtering added for category and date range.
+- Expense sorting added for amount and expense date.
+- Filtering and sorting are applied before pagination.
+- Ownership protection still applies to expense listing.
+- Summary endpoint is not added yet.
+
+Filter by category:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?category=Food" \
+  -H "X-User-ID: 1"
+```
+
+Filter by date range:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?date_from=2025-06-01&date_to=2025-06-30" \
+  -H "X-User-ID: 1"
+```
+
+Sort by amount:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?sort_by=amount&sort_order=desc" \
+  -H "X-User-ID: 1"
+```
+
+Combined:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/expenses?category=Food&date_from=2025-06-01&sort_by=amount&sort_order=desc&page=1&limit=10" \
+  -H "X-User-ID: 1"
+```

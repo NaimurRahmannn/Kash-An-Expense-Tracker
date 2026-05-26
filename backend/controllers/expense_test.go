@@ -316,6 +316,255 @@ func TestListExpensesMissingUserIDReturnsUnauthorized(t *testing.T) {
 	assertExpenseErrorResponse(t, rec.Code, response, http.StatusUnauthorized, "Unauthorized")
 }
 
+func TestListExpensesWithCategoryReturnsOnlyThatCategory(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Bus", 25, "Transport", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?category=Food", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 1 || response.Data[0].Category != "Food" {
+		t.Fatalf("expected only Food expense, got %+v", response.Data)
+	}
+}
+
+func TestListExpensesWithInvalidCategoryReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?category=Travel", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid category")
+}
+
+func TestListExpensesWithDateFromReturnsOnOrAfterDateFrom(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Breakfast", 100, "Food", "2025-05-31")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-01")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?date_from=2025-06-01", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 2 {
+		t.Fatalf("expected two expenses, got %+v", response.Data)
+	}
+	for _, expense := range response.Data {
+		if expense.ExpenseDate < "2025-06-01" {
+			t.Fatalf("expected expense on or after date_from, got %+v", expense)
+		}
+	}
+}
+
+func TestListExpensesWithDateToReturnsOnOrBeforeDateTo(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Breakfast", 100, "Food", "2025-05-31")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-01")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?date_to=2025-06-01", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 2 {
+		t.Fatalf("expected two expenses, got %+v", response.Data)
+	}
+	for _, expense := range response.Data {
+		if expense.ExpenseDate > "2025-06-01" {
+			t.Fatalf("expected expense on or before date_to, got %+v", expense)
+		}
+	}
+}
+
+func TestListExpensesWithDateRangeReturnsInsideRange(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Breakfast", 100, "Food", "2025-05-31")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-30")
+	seedCustomExpense(t, 1, "Snack", 75, "Food", "2025-07-01")
+
+	rec := getWithHeaders("/api/v1/expenses?date_from=2025-06-01&date_to=2025-06-30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 2 {
+		t.Fatalf("expected two expenses inside range, got %+v", response.Data)
+	}
+	for _, expense := range response.Data {
+		if expense.ExpenseDate < "2025-06-01" || expense.ExpenseDate > "2025-06-30" {
+			t.Fatalf("expected expense inside date range, got %+v", expense)
+		}
+	}
+}
+
+func TestListExpensesWithInvalidDateFromReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?date_from=2025/06/01", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid date_from format")
+}
+
+func TestListExpensesWithInvalidDateToReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?date_to=2025/06/30", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid date_to format")
+}
+
+func TestListExpensesWithDateFromAfterDateToReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?date_from=2025-06-30&date_to=2025-06-01", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "date_from cannot be after date_to")
+}
+
+func TestListExpensesSortByAmountAscReturnsLowToHigh(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Snack", 75, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=amount&sort_order=asc", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	assertExpenseAmounts(t, response.Data, []float64{75, 350.50, 500})
+}
+
+func TestListExpensesSortByAmountDescReturnsHighToLow(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Snack", 75, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=amount&sort_order=desc", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	assertExpenseAmounts(t, response.Data, []float64{500, 350.50, 75})
+}
+
+func TestListExpensesSortByExpenseDateAscReturnsOldestToNewest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-30")
+	seedCustomExpense(t, 1, "Breakfast", 100, "Food", "2025-06-01")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=expense_date&sort_order=asc", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	assertExpenseDates(t, response.Data, []string{"2025-06-01", "2025-06-10", "2025-06-30"})
+}
+
+func TestListExpensesSortByExpenseDateDescReturnsNewestToOldest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Breakfast", 100, "Food", "2025-06-01")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-30")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=expense_date&sort_order=desc", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	assertExpenseDates(t, response.Data, []string{"2025-06-30", "2025-06-10", "2025-06-01"})
+}
+
+func TestListExpensesInvalidSortByReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=title", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid sort_by parameter")
+}
+
+func TestListExpensesInvalidSortOrderReturnsBadRequest(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=amount&sort_order=newest", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseResponse(t, rec)
+
+	assertExpenseErrorResponse(t, rec.Code, response, http.StatusBadRequest, "Invalid sort_order parameter")
+}
+
+func TestListExpensesMissingSortOrderDefaultsToDesc(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Snack", 75, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?sort_by=amount", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	assertExpenseAmounts(t, response.Data, []float64{500, 350.50, 75})
+}
+
+func TestListExpensesFilterSortAndPaginationTogether(t *testing.T) {
+	useTempUserAndExpenseCSVConfig(t)
+	seedAuthenticatedUser(t, 1)
+	seedCustomExpense(t, 1, "Bus", 25, "Transport", "2025-06-10")
+	seedCustomExpense(t, 1, "Snack", 75, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Dinner", 500, "Food", "2025-06-10")
+	seedCustomExpense(t, 1, "Lunch", 350.50, "Food", "2025-06-10")
+
+	rec := getWithHeaders("/api/v1/expenses?category=Food&sort_by=amount&sort_order=desc&page=1&limit=1", map[string]string{"X-User-ID": "1"})
+	response := decodeExpenseListResponse(t, rec)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if len(response.Data) != 1 {
+		t.Fatalf("expected one expense, got %+v", response.Data)
+	}
+	if response.Data[0].Title != "Dinner" || response.Data[0].Amount != 500 {
+		t.Fatalf("expected highest Food expense on page 1, got %+v", response.Data[0])
+	}
+}
+
 func TestGetOneExpenseSuccessReturnsOK(t *testing.T) {
 	useTempUserAndExpenseCSVConfig(t)
 	seedAuthenticatedUser(t, 1)
@@ -679,13 +928,19 @@ func seedAuthenticatedUser(t *testing.T, userID int) {
 func seedExpense(t *testing.T, userID int, title string) models.Expense {
 	t.Helper()
 
+	return seedCustomExpense(t, userID, title, 350.50, "Food", "2025-06-10")
+}
+
+func seedCustomExpense(t *testing.T, userID int, title string, amount float64, category string, expenseDate string) models.Expense {
+	t.Helper()
+
 	expense := &models.Expense{
 		UserID:      userID,
 		Title:       title,
-		Amount:      350.50,
-		Category:    "Food",
+		Amount:      amount,
+		Category:    category,
 		Note:        "Team lunch",
-		ExpenseDate: "2025-06-10",
+		ExpenseDate: expenseDate,
 	}
 	if err := models.CreateExpense(expense); err != nil {
 		t.Fatalf("expected expense to be seeded: %v", err)
@@ -777,6 +1032,32 @@ func assertExpenseErrorResponse(t *testing.T, statusCode int, response expenseRe
 	}
 	if response.Message != expectedMessage {
 		t.Fatalf("expected message %q, got %q", expectedMessage, response.Message)
+	}
+}
+
+func assertExpenseAmounts(t *testing.T, expenses []expenseResponseData, expectedAmounts []float64) {
+	t.Helper()
+
+	if len(expenses) != len(expectedAmounts) {
+		t.Fatalf("expected %d expenses, got %d", len(expectedAmounts), len(expenses))
+	}
+	for index, expectedAmount := range expectedAmounts {
+		if expenses[index].Amount != expectedAmount {
+			t.Fatalf("expected amount %.2f at index %d, got %.2f", expectedAmount, index, expenses[index].Amount)
+		}
+	}
+}
+
+func assertExpenseDates(t *testing.T, expenses []expenseResponseData, expectedDates []string) {
+	t.Helper()
+
+	if len(expenses) != len(expectedDates) {
+		t.Fatalf("expected %d expenses, got %d", len(expectedDates), len(expenses))
+	}
+	for index, expectedDate := range expectedDates {
+		if expenses[index].ExpenseDate != expectedDate {
+			t.Fatalf("expected expense_date %q at index %d, got %q", expectedDate, index, expenses[index].ExpenseDate)
+		}
 	}
 }
 

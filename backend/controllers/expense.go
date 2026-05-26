@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -65,11 +66,7 @@ func (c *ExpenseController) List() {
 		return
 	}
 
-	page, ok := c.parsePositiveQueryInt("page", 1, "Invalid page parameter")
-	if !ok {
-		return
-	}
-	limit, ok := c.parsePositiveQueryInt("limit", 10, "Invalid limit parameter")
+	params, ok := c.parseExpenseQueryParams()
 	if !ok {
 		return
 	}
@@ -81,7 +78,11 @@ func (c *ExpenseController) List() {
 		return
 	}
 
-	c.SuccessWithData("Expenses retrieved", toExpenseResponses(paginateExpenses(expenses, page, limit)))
+	filteredExpenses := filterExpenses(expenses, params)
+	sortedExpenses := sortExpenses(filteredExpenses, params.SortBy, params.SortOrder)
+	paginatedExpenses := paginateExpenses(sortedExpenses, params.Page, params.Limit)
+
+	c.SuccessWithData("Expenses retrieved", toExpenseResponses(paginatedExpenses))
 }
 
 // GetOne returns one expense owned by the authenticated user.
@@ -251,19 +252,26 @@ func (c *ExpenseController) parseExpenseInput() (validators.ExpenseInput, bool) 
 	return input, true
 }
 
-func (c *ExpenseController) parsePositiveQueryInt(key string, defaultValue int, errorMessage string) (int, bool) {
-	valueText := strings.TrimSpace(c.Ctx.Input.Query(key))
-	if valueText == "" {
-		return defaultValue, true
+func (c *ExpenseController) parseExpenseQueryParams() (validators.ExpenseQueryParams, bool) {
+	params := validators.ExpenseQueryParams{
+		Category:  strings.TrimSpace(c.Ctx.Input.Query("category")),
+		DateFrom:  strings.TrimSpace(c.Ctx.Input.Query("date_from")),
+		DateTo:    strings.TrimSpace(c.Ctx.Input.Query("date_to")),
+		SortBy:    strings.TrimSpace(c.Ctx.Input.Query("sort_by")),
+		SortOrder: strings.TrimSpace(c.Ctx.Input.Query("sort_order")),
+		Page:      parseQueryIntOrDefault(c.Ctx.Input.Query("page"), 1),
+		Limit:     parseQueryIntOrDefault(c.Ctx.Input.Query("limit"), 10),
+	}
+	if params.SortOrder == "" {
+		params.SortOrder = "desc"
 	}
 
-	value, err := strconv.Atoi(valueText)
-	if err != nil || value <= 0 {
-		c.ErrorResponse(http.StatusBadRequest, errorMessage)
-		return 0, false
+	if message := validators.ValidateExpenseQueryParams(params); message != "" {
+		c.ErrorResponse(http.StatusBadRequest, message)
+		return params, false
 	}
 
-	return value, true
+	return params, true
 }
 
 func normalizeExpenseInput(input validators.ExpenseInput) validators.ExpenseInput {
@@ -296,6 +304,60 @@ func toExpenseResponses(expenses []models.Expense) []ExpenseResponse {
 	return responses
 }
 
+func filterExpenses(expenses []models.Expense, params validators.ExpenseQueryParams) []models.Expense {
+	filteredExpenses := make([]models.Expense, 0, len(expenses))
+	for _, expense := range expenses {
+		if params.Category != "" && expense.Category != params.Category {
+			continue
+		}
+		if params.DateFrom != "" && expense.ExpenseDate < params.DateFrom {
+			continue
+		}
+		if params.DateTo != "" && expense.ExpenseDate > params.DateTo {
+			continue
+		}
+
+		filteredExpenses = append(filteredExpenses, expense)
+	}
+
+	return filteredExpenses
+}
+
+func sortExpenses(expenses []models.Expense, sortBy string, sortOrder string) []models.Expense {
+	sortedExpenses := make([]models.Expense, len(expenses))
+	copy(sortedExpenses, expenses)
+
+	if sortBy == "" {
+		return sortedExpenses
+	}
+
+	sort.SliceStable(sortedExpenses, func(i int, j int) bool {
+		if sortBy == "amount" {
+			return compareExpenseAmount(sortedExpenses[i], sortedExpenses[j], sortOrder)
+		}
+
+		return compareExpenseDate(sortedExpenses[i], sortedExpenses[j], sortOrder)
+	})
+
+	return sortedExpenses
+}
+
+func compareExpenseAmount(left models.Expense, right models.Expense, sortOrder string) bool {
+	if sortOrder == "asc" {
+		return left.Amount < right.Amount
+	}
+
+	return left.Amount > right.Amount
+}
+
+func compareExpenseDate(left models.Expense, right models.Expense, sortOrder string) bool {
+	if sortOrder == "asc" {
+		return left.ExpenseDate < right.ExpenseDate
+	}
+
+	return left.ExpenseDate > right.ExpenseDate
+}
+
 func paginateExpenses(expenses []models.Expense, page int, limit int) []models.Expense {
 	start := (page - 1) * limit
 	if start >= len(expenses) {
@@ -312,4 +374,18 @@ func paginateExpenses(expenses []models.Expense, page int, limit int) []models.E
 
 func isExpenseNotFoundError(err error) bool {
 	return err != nil && err.Error() == "expense not found"
+}
+
+func parseQueryIntOrDefault(valueText string, defaultValue int) int {
+	normalizedValue := strings.TrimSpace(valueText)
+	if normalizedValue == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(normalizedValue)
+	if err != nil {
+		return 0
+	}
+
+	return value
 }

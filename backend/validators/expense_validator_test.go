@@ -58,10 +58,147 @@ func TestValidateExpenseInputInvalidExpenseDate(t *testing.T) {
 	assertExpenseValidationMessage(t, ValidateExpenseInput(input), "Invalid expense date format")
 }
 
+func TestValidateExpenseQueryParamsValid(t *testing.T) {
+	params := ExpenseQueryParams{
+		Category:  "Food",
+		DateFrom:  "2025-06-01",
+		DateTo:    "2025-06-30",
+		SortBy:    "amount",
+		SortOrder: "desc",
+		Page:      1,
+		Limit:     10,
+	}
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid query params, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsInvalidCategory(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.Category = "Travel"
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid category")
+}
+
+func TestValidateExpenseQueryParamsValidDateFrom(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.DateFrom = "2025-06-01"
+	params.DateTo = ""
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid date_from, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsInvalidDateFrom(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.DateFrom = "2025/06/01"
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid date_from format")
+}
+
+func TestValidateExpenseQueryParamsValidDateTo(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.DateFrom = ""
+	params.DateTo = "2025-06-30"
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid date_to, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsInvalidDateTo(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.DateTo = "2025/06/30"
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid date_to format")
+}
+
+func TestValidateExpenseQueryParamsDateFromAfterDateTo(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.DateFrom = "2025-06-30"
+	params.DateTo = "2025-06-01"
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "date_from cannot be after date_to")
+}
+
+func TestValidateExpenseQueryParamsValidSortByAmount(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.SortBy = "amount"
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid sort_by amount, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsValidSortByExpenseDate(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.SortBy = "expense_date"
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid sort_by expense_date, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsInvalidSortBy(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.SortBy = "title"
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid sort_by parameter")
+}
+
+func TestValidateExpenseQueryParamsValidSortOrderAsc(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.SortOrder = "asc"
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid sort_order asc, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsValidSortOrderDesc(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.SortOrder = "desc"
+
+	if message := ValidateExpenseQueryParams(params); message != "" {
+		t.Fatalf("expected valid sort_order desc, got %q", message)
+	}
+}
+
+func TestValidateExpenseQueryParamsInvalidSortOrder(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.SortOrder = "newest"
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid sort_order parameter")
+}
+
+func TestValidateExpenseQueryParamsInvalidPage(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.Page = 0
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid page parameter")
+}
+
+func TestValidateExpenseQueryParamsInvalidLimit(t *testing.T) {
+	params := validExpenseQueryParams()
+	params.Limit = 0
+
+	assertExpenseValidationMessage(t, ValidateExpenseQueryParams(params), "Invalid limit parameter")
+}
+
 func assertExpenseValidationMessage(t *testing.T, actual string, expected string) {
 	t.Helper()
 
 	if actual != expected {
 		t.Fatalf("expected validation message %q, got %q", expected, actual)
+	}
+}
+
+func validExpenseQueryParams() ExpenseQueryParams {
+	return ExpenseQueryParams{
+		Page:      1,
+		Limit:     10,
+		SortOrder: "desc",
 	}
 }
