@@ -142,6 +142,10 @@ export function useExpensesList() {
     void requestExpenses(buildQuery(nextPage));
   }
 
+  function refreshCurrentPage() {
+    return requestExpenses(appliedQuery);
+  }
+
   return {
     appliedQuery,
     canGoNext: expenses.length === limit,
@@ -169,6 +173,7 @@ export function useExpensesList() {
     sortBy,
     sortOrder,
     visibleExpenses,
-    retry: () => void requestExpenses(appliedQuery),
+    refreshCurrentPage,
+    retry: () => void refreshCurrentPage(),
   };
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import {
   formatCurrency,
@@ -10,12 +10,12 @@ import type { Expense } from "@/types/expense";
 
 type ExpenseTableProps = {
   expenses: Expense[];
-  onDeletePlaceholder: () => void;
+  onDelete: (expense: Expense) => void;
 };
 
 export function ExpenseTable({
   expenses,
-  onDeletePlaceholder,
+  onDelete,
 }: ExpenseTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200">
@@ -60,15 +60,6 @@ export function ExpenseTable({
                 </td>
                 <td className="whitespace-nowrap px-4 py-4">
                   <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      disabled
-                      title="View page will be added later"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition disabled:cursor-not-allowed disabled:opacity-60"
-                      aria-label={`View ${expense.title}`}
-                    >
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    </button>
                     <Link
                       href={`/expenses/${expense.id}/edit`}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-violet-50 hover:text-violet-700"
@@ -80,7 +71,7 @@ export function ExpenseTable({
                       type="button"
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
                       aria-label={`Delete ${expense.title}`}
-                      onClick={onDeletePlaceholder}
+                      onClick={() => onDelete(expense)}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>

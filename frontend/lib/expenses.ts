@@ -120,3 +120,10 @@ export function updateExpense(
     body: JSON.stringify(input),
   });
 }
+
+export function deleteExpense(id: number): Promise<ApiResponse> {
+  return apiRequest<ApiResponse>(`/expenses/${id}`, {
+    method: "DELETE",
+    headers: getUserHeaders(),
+  });
+}

@@ -66,7 +66,14 @@ Frontend Part 7 completed:
 - Frontend validation reused
 - Successful update redirects to expenses page
 
-Delete expense API calls, chart library integration, and voice input are not implemented yet.
+Frontend Part 8 completed:
+
+- Delete expense API integration
+- Confirmation dialog added
+- Expenses list refreshes after delete
+- Delete success/error feedback added
+
+Chart library integration and voice input are not implemented yet.
 
 ## Getting Started
 
@@ -111,7 +118,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 - Login stores the backend `user_id`, `name`, and `email` in localStorage under `expense_tracker_user`.
 - Protected pages read localStorage using `useAuth`.
 - Dashboard uses `X-User-ID` from the stored login user.
-- Dashboard, expenses list, create expense, and edit expense requests use the stored `user_id` with the `X-User-ID` header.
+- Dashboard, expenses list, create expense, edit expense, and delete expense requests use the stored `user_id` with the `X-User-ID` header.
 - User must login before dashboard data can load.
 
 ## Expenses Pagination Note
