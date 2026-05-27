@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ChevronsLeft,
   CirclePlus,
@@ -15,11 +14,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import {
-  getStoredUser,
-  removeStoredUser,
-  type StoredUser,
-} from "@/lib/auth-storage";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -58,12 +53,6 @@ const navItems = [
 
 const mobileNavItems = navItems.filter((item) => item.href !== "/settings");
 
-const fallbackUser: StoredUser = {
-  user_id: 0,
-  name: "John Doe",
-  email: "john.doe@example.com",
-};
-
 function getInitials(name: string) {
   return name
     .split(" ")
@@ -86,24 +75,10 @@ function isActivePath(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [user, setUser] = useState<StoredUser>(fallbackUser);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setUser(getStoredUser() ?? fallbackUser);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  function handleLogout() {
-    removeStoredUser();
-    setUser(fallbackUser);
-    router.push("/login");
-  }
-
-  const initials = getInitials(user.name) || "JD";
+  const { isLoading, logout, user } = useAuth();
+  const displayName = isLoading ? "User" : user?.name ?? "User";
+  const displayEmail = isLoading ? "Loading..." : user?.email ?? "";
+  const initials = getInitials(displayName) || "U";
 
   return (
     <>
@@ -154,13 +129,15 @@ export function Sidebar() {
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">{user.name}</p>
-              <p className="truncate text-xs text-slate-500">{user.email}</p>
+              <p className="truncate text-sm font-semibold text-slate-950">
+                {displayName}
+              </p>
+              <p className="truncate text-xs text-slate-500">{displayEmail}</p>
             </div>
           </Link>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={logout}
             className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />

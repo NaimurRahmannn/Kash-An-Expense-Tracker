@@ -7,7 +7,11 @@ export type StoredUser = {
 const STORAGE_KEY = "expense_tracker_user";
 
 function canUseStorage() {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
+  try {
+    return typeof window !== "undefined" && Boolean(window.localStorage);
+  } catch {
+    return false;
+  }
 }
 
 function isStoredUser(value: unknown): value is StoredUser {
@@ -46,8 +50,14 @@ export function getStoredUser(): StoredUser | null {
   try {
     const parsedUser = JSON.parse(rawUser);
 
-    return isStoredUser(parsedUser) ? parsedUser : null;
+    if (isStoredUser(parsedUser)) {
+      return parsedUser;
+    }
+
+    window.localStorage.removeItem(STORAGE_KEY);
+    return null;
   } catch {
+    window.localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }
@@ -62,4 +72,8 @@ export function removeStoredUser(): void {
 
 export function getStoredUserID(): number | null {
   return getStoredUser()?.user_id ?? null;
+}
+
+export function isAuthenticated(): boolean {
+  return getStoredUser() !== null;
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, UserPlus, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { useAuth } from "@/hooks/useAuth";
 import { registerUser } from "@/lib/auth";
 
 const SERVER_ERROR_MESSAGE = "Unable to connect to server. Please try again.";
@@ -30,6 +31,7 @@ function getAuthErrorMessage(error: unknown) {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,6 +39,12 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, isAuthLoading, router]);
 
   function validateForm() {
     if (!name.trim()) {
@@ -100,6 +108,19 @@ export default function RegisterPage() {
   }
 
   return (
+    isAuthLoading || isAuthenticated ? (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+        <Card className="w-full max-w-sm p-6 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-500 text-white shadow-lg shadow-violet-200">
+            <WalletCards className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-violet-600" aria-hidden="true" />
+          <p className="mt-3 text-sm font-semibold text-slate-700">
+            Checking authentication...
+          </p>
+        </Card>
+      </main>
+    ) : (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <Card className="w-full max-w-md p-6">
         <div className="mb-6 text-center">
@@ -202,5 +223,6 @@ export default function RegisterPage() {
         </p>
       </Card>
     </main>
+    )
   );
 }

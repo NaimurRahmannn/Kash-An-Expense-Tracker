@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   ChevronDown,
@@ -10,20 +8,10 @@ import {
   WalletCards,
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import {
-  getStoredUser,
-  removeStoredUser,
-  type StoredUser,
-} from "@/lib/auth-storage";
+import { useAuth } from "@/hooks/useAuth";
 
 type TopbarProps = {
   title?: string;
-};
-
-const fallbackUser: StoredUser = {
-  user_id: 0,
-  name: "John Doe",
-  email: "john.doe@example.com",
 };
 
 function getInitials(name: string) {
@@ -36,24 +24,10 @@ function getInitials(name: string) {
 }
 
 export function Topbar({ title }: TopbarProps) {
-  const router = useRouter();
-  const [user, setUser] = useState<StoredUser>(fallbackUser);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setUser(getStoredUser() ?? fallbackUser);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  function handleLogout() {
-    removeStoredUser();
-    setUser(fallbackUser);
-    router.push("/login");
-  }
-
-  const initials = getInitials(user.name) || "JD";
+  const { isLoading, logout, user } = useAuth();
+  const displayName = isLoading ? "User" : user?.name ?? "User";
+  const displayEmail = isLoading ? "Loading..." : user?.email ?? "";
+  const initials = getInitials(displayName) || "U";
 
   return (
     <header className="sticky top-0 z-30 bg-[#fbfbfd]/95 backdrop-blur">
@@ -70,13 +44,14 @@ export function Topbar({ title }: TopbarProps) {
 
           <button
             type="button"
+            onClick={logout}
             className="inline-flex items-center gap-3 rounded-full text-slate-950"
-            aria-label="User menu"
+            aria-label="Logout"
           >
             <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-violet-200 via-amber-100 to-sky-200 text-base font-bold text-slate-800">
               {initials}
             </span>
-            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+            <LogOut className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -138,16 +113,16 @@ export function Topbar({ title }: TopbarProps) {
               {initials}
             </span>
             <span className="hidden min-w-0 sm:block">
-              <span className="block max-w-34 truncate">{user.name}</span>
+              <span className="block max-w-34 truncate">{displayName}</span>
               <span className="block max-w-34 truncate text-xs font-medium text-slate-500">
-                {user.email}
+                {displayEmail}
               </span>
             </span>
           </div>
 
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={logout}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />

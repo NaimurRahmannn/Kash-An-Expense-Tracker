@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/config/env";
+import { getStoredUserID } from "@/lib/auth-storage";
 
 type ApiRequestOptions = RequestInit & {
   headers?: HeadersInit;
@@ -46,4 +47,10 @@ export async function apiRequest<T>(
   }
 
   return data as T;
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const userID = getStoredUserID();
+
+  return userID ? { "X-User-ID": String(userID) } : {};
 }

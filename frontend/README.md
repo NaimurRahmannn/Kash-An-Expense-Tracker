@@ -24,7 +24,16 @@ Frontend Part 2 completed:
 - Local user persistence
 - Basic logout helper
 
-Expense CRUD, dashboard API integration, dashboard charts, voice input, and route protection are not implemented yet.
+Frontend Part 3 completed:
+
+- Auth hook added
+- Protected routes added
+- AppShell pages require login
+- Sidebar/Topbar use stored user
+- Logout added
+- Login/register redirect authenticated users to dashboard
+
+Expense CRUD, dashboard API integration, dashboard charts, and voice input are not implemented yet.
 
 ## Getting Started
 
@@ -67,8 +76,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 - Register calls `POST /api/v1/auth/register`.
 - Login calls `POST /api/v1/auth/login`.
 - Login stores the backend `user_id`, `name`, and `email` in localStorage under `expense_tracker_user`.
+- Protected pages read localStorage using `useAuth`.
 - Later expense requests will send the stored `user_id` with the `X-User-ID` header.
-- Protected route handling is intentionally deferred.
+- Expense API integration is intentionally deferred.
 
 ## Planned API Routes
 
