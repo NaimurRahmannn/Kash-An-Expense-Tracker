@@ -1,10 +1,104 @@
+"use client";
+
+import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { UserPlus, WalletCards } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, UserPlus, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { registerUser } from "@/lib/auth";
+
+const SERVER_ERROR_MESSAGE = "Unable to connect to server. Please try again.";
+
+function getAuthErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    const message = error.message.trim();
+
+    if (
+      message &&
+      message !== "Failed to fetch" &&
+      message !== "NetworkError when attempting to fetch resource." &&
+      message !== "Request failed"
+    ) {
+      return message;
+    }
+  }
+
+  return SERVER_ERROR_MESSAGE;
+}
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  function validateForm() {
+    if (!name.trim()) {
+      return "Name is required";
+    }
+
+    if (!email.trim()) {
+      return "Email is required";
+    }
+
+    if (!password) {
+      return "Password is required";
+    }
+
+    if (password.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+
+    if (confirmPassword !== password) {
+      return "Passwords do not match";
+    }
+
+    return "";
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSuccessMessage("");
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await registerUser({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+
+      if (!response.success) {
+        setError(response.message || "Unable to create account");
+        return;
+      }
+
+      setSuccessMessage(response.message || "User registered successfully");
+      window.setTimeout(() => {
+        router.push("/login");
+      }, 1200);
+    } catch (caughtError) {
+      setError(getAuthErrorMessage(caughtError));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <Card className="w-full max-w-md p-6">
@@ -12,34 +106,91 @@ export default function RegisterPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-500 text-white shadow-lg shadow-violet-200">
             <WalletCards className="h-6 w-6" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-950">Create account</h1>
+          <h1 className="text-2xl font-bold text-slate-950">Create your account</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Register UI placeholder for the future auth flow.
+            Start tracking your expenses today
           </p>
         </div>
 
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="name" className="text-sm font-semibold text-slate-700">
               Name
             </label>
-            <Input id="name" placeholder="John Doe" className="mt-2" />
+            <Input
+              id="name"
+              autoComplete="name"
+              placeholder="John Doe"
+              className="mt-2"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
           </div>
           <div>
             <label htmlFor="email" className="text-sm font-semibold text-slate-700">
               Email
             </label>
-            <Input id="email" type="email" placeholder="john.doe@example.com" className="mt-2" />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="john@example.com"
+              className="mt-2"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
           </div>
           <div>
             <label htmlFor="password" className="text-sm font-semibold text-slate-700">
               Password
             </label>
-            <Input id="password" type="password" placeholder="Create password" className="mt-2" />
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Create password"
+              className="mt-2"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </div>
-          <Button type="button" className="w-full">
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
-            Register
+          <div>
+            <label
+              htmlFor="confirm-password"
+              className="text-sm font-semibold text-slate-700"
+            >
+              Confirm password
+            </label>
+            <Input
+              id="confirm-password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Confirm password"
+              className="mt-2"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </div>
+
+          {error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          {successMessage ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+              {successMessage}
+            </div>
+          ) : null}
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
+            )}
+            {isLoading ? "Creating account..." : "Create Account"}
           </Button>
         </form>
 

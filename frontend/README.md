@@ -16,7 +16,15 @@ Frontend Part 1 completed:
 - API client foundation
 - Shared types
 
-No real API calls, authentication, CRUD, dashboard charts, voice input, localStorage, or route protection are implemented yet.
+Frontend Part 2 completed:
+
+- Login API integration
+- Register API integration
+- Auth storage helper
+- Local user persistence
+- Basic logout helper
+
+Expense CRUD, dashboard API integration, dashboard charts, voice input, and route protection are not implemented yet.
 
 ## Getting Started
 
@@ -48,11 +56,19 @@ npm run lint
 
 ## Environment
 
-Create `.env.local` from `.env.example` when API wiring begins:
+Create `.env.local` from `.env.example`:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 ```
+
+## Auth Flow Notes
+
+- Register calls `POST /api/v1/auth/register`.
+- Login calls `POST /api/v1/auth/login`.
+- Login stores the backend `user_id`, `name`, and `email` in localStorage under `expense_tracker_user`.
+- Later expense requests will send the stored `user_id` with the `X-User-ID` header.
+- Protected route handling is intentionally deferred.
 
 ## Planned API Routes
 

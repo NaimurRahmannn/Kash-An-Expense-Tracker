@@ -1,18 +1,63 @@
-import {CalendarDays, ChevronDown, Search} from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  CalendarDays,
+  ChevronDown,
+  LogOut,
+  Search,
+  WalletCards,
+} from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { WalletCards } from "lucide-react";
+import {
+  getStoredUser,
+  removeStoredUser,
+  type StoredUser,
+} from "@/lib/auth-storage";
 
 type TopbarProps = {
   title?: string;
 };
 
+const fallbackUser: StoredUser = {
+  user_id: 0,
+  name: "John Doe",
+  email: "john.doe@example.com",
+};
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
 
 export function Topbar({ title }: TopbarProps) {
+  const router = useRouter();
+  const [user, setUser] = useState<StoredUser>(fallbackUser);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setUser(getStoredUser() ?? fallbackUser);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  function handleLogout() {
+    removeStoredUser();
+    setUser(fallbackUser);
+    router.push("/login");
+  }
+
+  const initials = getInitials(user.name) || "JD";
+
   return (
     <header className="sticky top-0 z-30 bg-[#fbfbfd]/95 backdrop-blur">
       <div className="px-4 pb-4 pt-4 sm:px-7 lg:hidden">
-        
-
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-linear-to-br from-violet-400 to-violet-700 text-white shadow-lg shadow-violet-200">
@@ -29,7 +74,7 @@ export function Topbar({ title }: TopbarProps) {
             aria-label="User menu"
           >
             <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-violet-200 via-amber-100 to-sky-200 text-base font-bold text-slate-800">
-              AS
+              {initials}
             </span>
             <ChevronDown className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -88,15 +133,25 @@ export function Topbar({ title }: TopbarProps) {
             <span className="absolute right-3 top-2.5 h-2.5 w-2.5 rounded-full bg-violet-600 ring-2 ring-white" />
           </button>
 
+          <div className="inline-flex h-12 items-center gap-3 rounded-2xl px-1.5 pr-2 text-sm font-semibold text-slate-800">
+            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-violet-200 via-amber-100 to-sky-200 text-sm font-bold text-slate-800">
+              {initials}
+            </span>
+            <span className="hidden min-w-0 sm:block">
+              <span className="block max-w-34 truncate">{user.name}</span>
+              <span className="block max-w-34 truncate text-xs font-medium text-slate-500">
+                {user.email}
+              </span>
+            </span>
+          </div>
+
           <button
             type="button"
-            className="inline-flex h-12 items-center gap-3 rounded-2xl px-1.5 pr-3 text-sm font-semibold text-slate-800 transition hover:bg-violet-50"
+            onClick={handleLogout}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
           >
-            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-violet-200 via-amber-100 to-sky-200 text-sm font-bold text-slate-800">
-              AS
-            </span>
-            <span className="hidden sm:inline">Arjun Sharma</span>
-            <ChevronDown className="h-4 w-4 text-slate-600" aria-hidden="true" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Logout
           </button>
         </div>
       </div>

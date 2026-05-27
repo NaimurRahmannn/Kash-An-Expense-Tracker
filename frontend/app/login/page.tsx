@@ -1,10 +1,77 @@
+"use client";
+
+import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { LogIn, WalletCards } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, LogIn, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { loginUser } from "@/lib/auth";
+import { saveUser } from "@/lib/auth-storage";
+
+const SERVER_ERROR_MESSAGE = "Unable to connect to server. Please try again.";
+
+function getAuthErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    const message = error.message.trim();
+
+    if (
+      message &&
+      message !== "Failed to fetch" &&
+      message !== "NetworkError when attempting to fetch resource." &&
+      message !== "Request failed"
+    ) {
+      return message;
+    }
+  }
+
+  return SERVER_ERROR_MESSAGE;
+}
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (!email.trim()) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await loginUser({
+        email: email.trim(),
+        password,
+      });
+
+      if (!response.success || !response.data) {
+        setError(response.message || "Invalid email or password");
+        return;
+      }
+
+      saveUser(response.data);
+      router.push("/dashboard");
+    } catch (caughtError) {
+      setError(getAuthErrorMessage(caughtError));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <Card className="w-full max-w-md p-6">
@@ -14,26 +81,53 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-950">Welcome back</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Login UI placeholder for Expense Tracker.
+            Sign in to manage your expenses
           </p>
         </div>
 
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="text-sm font-semibold text-slate-700">
               Email
             </label>
-            <Input id="email" type="email" placeholder="john.doe@example.com" className="mt-2" />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="john@example.com"
+              className="mt-2"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
           </div>
           <div>
             <label htmlFor="password" className="text-sm font-semibold text-slate-700">
               Password
             </label>
-            <Input id="password" type="password" placeholder="Enter password" className="mt-2" />
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter password"
+              className="mt-2"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </div>
-          <Button type="button" className="w-full">
-            <LogIn className="h-4 w-4" aria-hidden="true" />
-            Login
+
+          {error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <LogIn className="h-4 w-4" aria-hidden="true" />
+            )}
+            {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
 

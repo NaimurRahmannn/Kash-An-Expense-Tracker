@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronsLeft,
   CirclePlus,
   LayoutGrid,
+  LogOut,
   Mic,
   ReceiptText,
   Settings,
@@ -13,6 +15,11 @@ import {
   WalletCards,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import {
+  getStoredUser,
+  removeStoredUser,
+  type StoredUser,
+} from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -51,6 +58,21 @@ const navItems = [
 
 const mobileNavItems = navItems.filter((item) => item.href !== "/settings");
 
+const fallbackUser: StoredUser = {
+  user_id: 0,
+  name: "John Doe",
+  email: "john.doe@example.com",
+};
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
 function isActivePath(pathname: string, href: string) {
   if (href === "/expenses") {
     return (
@@ -64,6 +86,24 @@ function isActivePath(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<StoredUser>(fallbackUser);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setUser(getStoredUser() ?? fallbackUser);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  function handleLogout() {
+    removeStoredUser();
+    setUser(fallbackUser);
+    router.push("/login");
+  }
+
+  const initials = getInitials(user.name) || "JD";
 
   return (
     <>
@@ -108,9 +148,29 @@ export function Sidebar() {
           })}
         </nav>
 
+        <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <Link href="/profile" className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">{user.name}</p>
+              <p className="truncate text-xs text-slate-500">{user.email}</p>
+            </div>
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Logout
+          </button>
+        </div>
+
         <button
           type="button"
-          className="mt-auto flex h-14 items-center gap-4 border-t border-slate-200 px-4 pt-7 text-[15px] font-semibold text-slate-500 transition hover:text-violet-700"
+          className="mt-4 flex h-14 items-center gap-4 border-t border-slate-200 px-4 pt-7 text-[15px] font-semibold text-slate-500 transition hover:text-violet-700"
         >
           <ChevronsLeft className="h-5 w-5" aria-hidden="true" />
           Collapse
