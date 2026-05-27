@@ -1,7 +1,7 @@
 import { apiRequest } from "@/lib/api";
 import { getStoredUserID } from "@/lib/auth-storage";
 import type { ApiResponse } from "@/types/api";
-import type { Expense, ExpenseListQuery } from "@/types/expense";
+import type { Expense, ExpenseInput, ExpenseListQuery } from "@/types/expense";
 import type { ExpenseSummary } from "@/types/summary";
 
 function getUserHeaders() {
@@ -92,4 +92,14 @@ export function getExpenses(
       headers: getUserHeaders(),
     },
   );
+}
+
+export function createExpense(
+  input: ExpenseInput,
+): Promise<ApiResponse<Expense>> {
+  return apiRequest<ApiResponse<Expense>>("/expenses", {
+    method: "POST",
+    headers: getUserHeaders(),
+    body: JSON.stringify(input),
+  });
 }
