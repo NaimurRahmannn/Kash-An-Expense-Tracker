@@ -41,7 +41,16 @@ Frontend Part 4 completed:
 - Dashboard loading and error states
 - Category breakdown from real API data
 
-Expense CRUD pages, chart library integration, and voice input are not implemented yet.
+Frontend Part 5 completed:
+
+- Expenses page connected to backend list API
+- Category/date filtering
+- Sorting
+- Simple pagination
+- Loading/error/empty states
+- Edit/delete action placeholders
+
+Create/edit/delete expense API calls, chart library integration, and voice input are not implemented yet.
 
 ## Getting Started
 
@@ -86,8 +95,12 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 - Login stores the backend `user_id`, `name`, and `email` in localStorage under `expense_tracker_user`.
 - Protected pages read localStorage using `useAuth`.
 - Dashboard uses `X-User-ID` from the stored login user.
-- Later expense requests will send the stored `user_id` with the `X-User-ID` header.
+- Dashboard and expenses list requests use the stored `user_id` with the `X-User-ID` header.
 - User must login before dashboard data can load.
+
+## Expenses Pagination Note
+
+The backend list response currently returns only the current page data array. It does not return total count or total pages, so the frontend enables the Next button only when the returned data length matches the requested page limit.
 
 ## Planned API Routes
 

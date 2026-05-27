@@ -25,3 +25,17 @@ export type ExpenseInput = {
   note: string;
   expense_date: string;
 };
+
+export type ExpenseSortBy = "amount" | "expense_date";
+
+export type SortOrder = "asc" | "desc";
+
+export type ExpenseListQuery = {
+  page?: number;
+  limit?: number;
+  category?: ExpenseCategory | "";
+  dateFrom?: string;
+  dateTo?: string;
+  sortBy?: ExpenseSortBy | "";
+  sortOrder?: SortOrder;
+};
