@@ -4,15 +4,16 @@ import { Topbar } from "@/components/layout/Topbar";
 
 type AppShellProps = {
   children: ReactNode;
+  title?: string;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, title }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
+    <div className="min-h-screen bg-[#fbfbfd] text-slate-950">
       <Sidebar />
-      <div className="lg:pl-72">
-        <Topbar />
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-10">
+      <div className="lg:pl-73">
+        <Topbar title={title} />
+        <main className="w-full px-4 py-5 pb-34 sm:px-7 lg:px-8 lg:pb-8">
           {children}
         </main>
       </div>
