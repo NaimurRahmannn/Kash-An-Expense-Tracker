@@ -2,78 +2,15 @@
 
 import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatDateForAPI } from "@/lib/date";
 import { createExpense } from "@/lib/expenses";
-import type { ExpenseCategory, ExpenseInput } from "@/types/expense";
-
-type CreateExpenseFormValues = {
-  title: string;
-  amount: string;
-  category: ExpenseCategory | "";
-  expense_date: string;
-  note: string;
-};
-
-type CreateExpenseFieldErrors = Partial<
-  Record<keyof CreateExpenseFormValues, string>
->;
-
-const defaultCategory: ExpenseCategory = "Food";
-
-function getDefaultValues(): CreateExpenseFormValues {
-  return {
-    title: "",
-    amount: "",
-    category: defaultCategory,
-    expense_date: formatDateForAPI(new Date()),
-    note: "",
-  };
-}
-
-function isValidAPIDate(dateString: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return false;
-  }
-
-  const [year, month, day] = dateString.split("-").map(Number);
-  const parsedDate = new Date(year, month - 1, day);
-
-  return (
-    parsedDate.getFullYear() === year &&
-    parsedDate.getMonth() === month - 1 &&
-    parsedDate.getDate() === day
-  );
-}
-
-function validateForm(values: CreateExpenseFormValues) {
-  const errors: CreateExpenseFieldErrors = {};
-
-  if (!values.title.trim()) {
-    errors.title = "Title is required";
-  }
-
-  if (!values.amount.trim()) {
-    errors.amount = "Amount is required";
-  } else {
-    const amount = Number(values.amount);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      errors.amount = "Amount must be positive";
-    }
-  }
-
-  if (!values.category) {
-    errors.category = "Category is required";
-  }
-
-  if (!values.expense_date) {
-    errors.expense_date = "Expense date is required";
-  } else if (!isValidAPIDate(values.expense_date)) {
-    errors.expense_date = "Invalid expense date format";
-  }
-
-  return errors;
-}
+import {
+  getDefaultExpenseFormValues,
+  hasExpenseFormErrors,
+  toExpenseInput,
+  validateExpenseForm,
+  type ExpenseFormErrors,
+  type ExpenseFormValues,
+} from "@/lib/expense-validation";
 
 function getCreateErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "";
@@ -87,15 +24,15 @@ function getCreateErrorMessage(error: unknown) {
 
 export function useCreateExpenseForm() {
   const router = useRouter();
-  const [values, setValues] = useState<CreateExpenseFormValues>(getDefaultValues);
-  const [fieldErrors, setFieldErrors] = useState<CreateExpenseFieldErrors>({});
+  const [values, setValues] = useState<ExpenseFormValues>(getDefaultExpenseFormValues);
+  const [fieldErrors, setFieldErrors] = useState<ExpenseFormErrors>({});
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function updateField<K extends keyof CreateExpenseFormValues>(
+  function updateField<K extends keyof ExpenseFormValues>(
     field: K,
-    value: CreateExpenseFormValues[K],
+    value: ExpenseFormValues[K],
   ) {
     setValues((currentValues) => ({
       ...currentValues,
@@ -110,7 +47,7 @@ export function useCreateExpenseForm() {
   }
 
   function resetForm() {
-    setValues(getDefaultValues());
+    setValues(getDefaultExpenseFormValues());
     setFieldErrors({});
     setFormError("");
     setSuccessMessage("");
@@ -118,27 +55,19 @@ export function useCreateExpenseForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const validationErrors = validateForm(values);
+    const validationErrors = validateExpenseForm(values);
     setFieldErrors(validationErrors);
     setFormError("");
     setSuccessMessage("");
 
-    if (Object.keys(validationErrors).length > 0) {
+    if (hasExpenseFormErrors(validationErrors)) {
       return;
     }
-
-    const payload: ExpenseInput = {
-      title: values.title.trim(),
-      amount: Number(values.amount),
-      category: values.category as ExpenseCategory,
-      note: values.note.trim(),
-      expense_date: values.expense_date,
-    };
 
     setIsSubmitting(true);
 
     try {
-      const response = await createExpense(payload);
+      const response = await createExpense(toExpenseInput(values));
 
       if (!response.success || !response.data) {
         throw new Error(response.message || "Unable to create expense");

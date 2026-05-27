@@ -103,3 +103,20 @@ export function createExpense(
     body: JSON.stringify(input),
   });
 }
+
+export function getExpenseById(id: number): Promise<ApiResponse<Expense>> {
+  return apiRequest<ApiResponse<Expense>>(`/expenses/${id}`, {
+    headers: getUserHeaders(),
+  });
+}
+
+export function updateExpense(
+  id: number,
+  input: ExpenseInput,
+): Promise<ApiResponse<Expense>> {
+  return apiRequest<ApiResponse<Expense>>(`/expenses/${id}`, {
+    method: "PUT",
+    headers: getUserHeaders(),
+    body: JSON.stringify(input),
+  });
+}
