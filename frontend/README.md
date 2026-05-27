@@ -33,7 +33,15 @@ Frontend Part 3 completed:
 - Logout added
 - Login/register redirect authenticated users to dashboard
 
-Expense CRUD, dashboard API integration, dashboard charts, and voice input are not implemented yet.
+Frontend Part 4 completed:
+
+- Dashboard connected to backend summary API
+- Recent expenses loaded from backend
+- Date range summary support
+- Dashboard loading and error states
+- Category breakdown from real API data
+
+Expense CRUD pages, chart library integration, and voice input are not implemented yet.
 
 ## Getting Started
 
@@ -77,8 +85,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 - Login calls `POST /api/v1/auth/login`.
 - Login stores the backend `user_id`, `name`, and `email` in localStorage under `expense_tracker_user`.
 - Protected pages read localStorage using `useAuth`.
+- Dashboard uses `X-User-ID` from the stored login user.
 - Later expense requests will send the stored `user_id` with the `X-User-ID` header.
-- Expense API integration is intentionally deferred.
+- User must login before dashboard data can load.
 
 ## Planned API Routes
 

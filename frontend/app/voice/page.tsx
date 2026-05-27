@@ -25,7 +25,7 @@ export default function VoiceInputPage() {
         <div className="mx-auto mt-8 max-w-xl rounded-lg border border-violet-100 bg-violet-50 px-5 py-4 text-left">
           <p className="text-xs font-bold uppercase text-violet-700">Example transcript</p>
           <p className="mt-2 text-sm font-medium text-slate-700">
-            &quot;Had lunch at Pizza Hut for 560 rupees&quot;
+            &quot;Had lunch at Pizza Hut for ৳560&quot;
           </p>
         </div>
       </Card>

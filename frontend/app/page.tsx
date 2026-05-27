@@ -46,9 +46,9 @@ export default function Home() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              ["Total Expenses", "BDT 42,580"],
+              ["Total Expenses", "৳42,580"],
               ["Transactions", "128"],
-              ["Daily Average", "BDT 1,419"],
+              ["Daily Average", "৳1,419"],
               ["Top Category", "Food"],
             ].map(([label, value]) => (
               <div
@@ -75,7 +75,7 @@ export default function Home() {
                     <span className="text-sm font-medium text-slate-700">{item}</span>
                   </div>
                   <span className="text-sm font-semibold text-slate-950">
-                    BDT {index === 0 ? "560" : index === 1 ? "1,200" : "1,050"}
+                    ৳{index === 0 ? "560" : index === 1 ? "1,200" : "1,050"}
                   </span>
                 </div>
               ),
