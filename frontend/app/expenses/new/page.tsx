@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Lightbulb, RotateCcw, Save, Tag } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Lightbulb,
+  Mic,
+  RotateCcw,
+  Save,
+  Tag,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -175,6 +183,25 @@ export default function AddExpensePage() {
         </Card>
 
         <div className="space-y-6">
+          <Card className="p-5">
+            <div className="flex items-center gap-2">
+              <Mic className="h-5 w-5 text-violet-600" aria-hidden="true" />
+              <h2 className="text-base font-bold text-slate-950">
+                Prefer speaking?
+              </h2>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Try Voice Input with the guided format.
+            </p>
+            <Link
+              href="/voice"
+              className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition hover:bg-violet-700"
+            >
+              <Mic className="h-4 w-4" aria-hidden="true" />
+              Try Voice Input
+            </Link>
+          </Card>
+
           <Card className="p-5">
             <div className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-amber-500" aria-hidden="true" />

@@ -73,7 +73,17 @@ Frontend Part 8 completed:
 - Expenses list refreshes after delete
 - Delete success/error feedback added
 
-Chart library integration and voice input are not implemented yet.
+Frontend Part 10 completed:
+
+- Voice Input bonus feature added
+- Uses strict guided voice format
+- Browser speech recognition support
+- Transcript parsing into expense fields
+- Editable confirmation form before saving
+- Uses existing `POST /expenses` API
+- Falls back gracefully when speech recognition is unsupported
+
+Chart library integration is not implemented yet.
 
 ## Getting Started
 
@@ -124,6 +134,24 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 ## Expenses Pagination Note
 
 The backend list response currently returns only the current page data array. It does not return total count or total pages, so the frontend enables the Next button only when the returned data length matches the requested page limit.
+
+## Voice Input Notes
+
+Voice input works best in browsers that support the Web Speech API, such as Chrome.
+
+Required voice format:
+
+```text
+Title Amount Category Date
+```
+
+Examples:
+
+- Lunch 350 food today
+- Bus fare 80 transport yesterday
+- Medicine 500 healthcare 2025-06-10
+
+Parsed data should be reviewed before saving.
 
 ## Planned API Routes
 
