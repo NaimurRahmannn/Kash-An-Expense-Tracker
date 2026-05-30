@@ -15,7 +15,7 @@ Personal Expense Tracker backend API built with Go, Beego v2, and CSV storage.
 
 ## Overview
 
-This API provides the required backend for a Personal Expense Tracker assignment. It supports user registration, login, CSV-backed expense CRUD, pagination, filtering, sorting, and spending summaries.
+This API provides the required backend for a Personal Expense Tracker assignment. It supports user registration, login, CSV-backed expense CRUD, pagination, filtering, sorting, and spending summaries. CSV remains the default local storage mode, with an optional Postgres driver wired for production-style deployments.
 
 > The backend is API-only and keeps configuration in `conf/app.conf`.
 
@@ -34,6 +34,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Postman Testing](#postman-testing)
 - [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
+- [Storage Driver Switching](#storage-driver-switching)
 - [Postgres Production Preparation](#postgres-production-preparation)
 - [Postgres User Repository](#postgres-user-repository)
 - [Postgres Expense Repository](#postgres-expense-repository)
@@ -57,10 +58,11 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Sorting | Yes |
 | Spending summary | Yes |
 | CSV storage | Yes |
-| Postgres configuration | Prepared for later |
-| Postgres connection foundation | Prepared for later |
-| Postgres user repository | Implemented, not active yet |
-| Postgres expense repository | Implemented, not active yet |
+| Storage driver switching | Yes |
+| Postgres configuration | Implemented |
+| Postgres connection foundation | Implemented |
+| Postgres user repository | Implemented |
+| Postgres expense repository | Implemented |
 | Repository integration | Controllers use repository factory |
 
 ## Tech Stack
@@ -70,6 +72,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Go 1.22+ | Backend language |
 | Beego v2 | Web framework and routing |
 | CSV | Required assignment storage |
+| Postgres | Optional production storage driver |
 | Go testing package | Unit and integration-style tests |
 
 ## Project Structure
@@ -434,7 +437,7 @@ Controllers now depend on repository interfaces through the repository factory w
 - CSV repository adapters wrap the existing model functions.
 - CSV remains the active implementation by default.
 - CSV behavior remains unchanged.
-- Postgres will be added as a new repository implementation later.
+- Postgres repositories are used when `storage_driver = postgres`.
 - CSV remains the default for local assignment mode.
 
 Current storage architecture status:
@@ -450,7 +453,7 @@ Current storage architecture status:
 | Postgres schema and migration helper | Implemented |
 | Postgres user repository | Implemented |
 | Postgres expense repository | Implemented |
-| Production driver switch | Planned next |
+| Production driver switch | Implemented |
 
 ## Storage Modes
 
@@ -467,10 +470,10 @@ CSV is the default storage mode because the assignment requires CSV file storage
 
 ### Postgres Storage - Production Mode
 
-Postgres support is planned as an optional production storage mode.
+Postgres support is available as an optional production storage mode.
 
-- It will be enabled later with `storage_driver = postgres`.
-- It will use `postgres_dsn` for the database connection string.
+- It is enabled with `storage_driver = postgres`.
+- It uses `postgres_dsn` for the database connection string.
 - It is useful for production because hosted environments may not persist local CSV files reliably.
 - Postgres is not required for local assignment testing.
 
@@ -479,17 +482,43 @@ Current status:
 | Storage Item | Status |
 | --- | --- |
 | CSV storage | Fully implemented |
-| Postgres configuration | Prepared |
-| Postgres connection helper | Prepared |
-| Postgres schema SQL | Prepared |
-| Optional auto-migration helper | Prepared |
+| Postgres configuration | Implemented |
+| Postgres connection helper | Implemented |
+| Postgres schema SQL | Implemented |
+| Optional auto-migration helper | Implemented |
 | Postgres user repository | Implemented |
 | Postgres expense repository | Implemented |
-| Production driver switch | Planned next |
+| Production driver switch | Implemented |
+
+## Storage Driver Switching
+
+The backend supports runtime storage selection through `conf/app.conf`.
+
+### Local / Assignment Mode
+
+```ini
+storage_driver = csv
+csv_user_file = data/users.csv
+csv_expense_file = data/expenses.csv
+```
+
+CSV remains the default mode and requires no database. This is the recommended mode for local assignment review with `bee run`.
+
+### Postgres Production Mode
+
+```ini
+storage_driver = postgres
+postgres_dsn = postgres://USER:PASSWORD@HOST:PORT/DB?sslmode=require
+postgres_auto_migrate = true
+```
+
+When `storage_driver = postgres`, application startup opens the shared Postgres connection before the Beego server starts. If `postgres_auto_migrate = true`, embedded schema migrations run during storage initialization.
+
+If Postgres mode is selected and the DSN is missing or invalid, startup fails fast with a clear error. CSV mode does not open Postgres and does not require Postgres to be installed or running.
 
 ## Postgres Production Preparation
 
-Postgres connection and schema foundations have been added for future production deployment. CSV remains the default local storage mode, and Postgres is not required to run or test the assignment locally.
+Postgres connection and schema foundations are available for production deployment. CSV remains the default local storage mode, and Postgres is not required to run or test the assignment locally.
 
 Prepared Postgres pieces:
 
@@ -499,7 +528,7 @@ Prepared Postgres pieces:
 - `repositories/postgres/schema.sql`
 - pgx stdlib driver registration for `database/sql`
 
-Auto-migration support is prepared through `schema.sql` and `RunMigrations`, but migrations are not run automatically yet.
+Auto-migration support is implemented through `schema.sql` and `RunMigrations`. Migrations run at startup only when `storage_driver = postgres` and `postgres_auto_migrate = true`.
 
 ### Schema Overview
 
@@ -526,9 +555,9 @@ Auto-migration support is prepared through `schema.sql` and `RunMigrations`, but
 | `expense_date` |
 | `created_at` |
 
-### Future Production Config
+### Production Config
 
-Future production mode will use:
+Production mode uses:
 
 ```ini
 storage_driver = postgres
@@ -542,11 +571,11 @@ Default local assignment mode remains:
 storage_driver = csv
 ```
 
-Postgres repositories will be added later.
+Postgres repositories are selected by the repository factory when `storage_driver = postgres`.
 
 ## Postgres User Repository
 
-The Postgres user repository has been implemented for future production storage support.
+The Postgres user repository has been implemented for production storage support.
 
 Supported user operations:
 
@@ -556,11 +585,11 @@ Supported user operations:
 - Get user by ID
 - Get next ID for interface compatibility
 
-The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory will switch to Postgres only after both user and expense repositories are implemented.
+The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory switches to Postgres only when `storage_driver = postgres`.
 
 ## Postgres Expense Repository
 
-The Postgres expense repository has been implemented for future production storage support.
+The Postgres expense repository has been implemented for production storage support.
 
 Supported expense operations:
 
@@ -571,7 +600,7 @@ Supported expense operations:
 - Delete expense with ownership check
 - Get next expense ID for interface compatibility
 
-The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory will switch to Postgres in a later part after safe startup wiring is added.
+The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory switches to Postgres only when `storage_driver = postgres`.
 
 ## Storage Strategy Decision
 
@@ -638,5 +667,5 @@ The project includes unit and integration-style tests for controllers, models, v
 > This backend intentionally stays assignment-focused and does not include bonus features.
 
 - Passwords are stored as plain text for assignment compatibility at this stage.
-- Postgres configuration is prepared, but Postgres storage logic is not implemented yet.
+- Postgres storage is wired for production mode, while CSV remains the default for local assignment runs.
 - Docker, Swagger, frontend, voice input, budget features, and export features are not included.
