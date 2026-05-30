@@ -32,6 +32,8 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [API Endpoints](#api-endpoints)
 - [Request Examples](#request-examples)
 - [Postman Testing](#postman-testing)
+- [Storage Modes](#storage-modes)
+- [Storage Strategy Decision](#storage-strategy-decision)
 - [CSV Storage](#csv-storage)
 - [Testing](#testing)
 - [Test Coverage](#test-coverage)
@@ -51,6 +53,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Sorting | Yes |
 | Spending summary | Yes |
 | CSV storage | Yes |
+| Postgres configuration | Prepared for later |
 
 ## Tech Stack
 
@@ -93,9 +96,14 @@ copyrequestbody = true
 storage_driver = csv
 csv_user_file = data/users.csv
 csv_expense_file = data/expenses.csv
+
+postgres_dsn =
+postgres_auto_migrate = false
 ```
 
 > CSV is the default storage for this assignment. The application creates required CSV files automatically when model functions need them.
+
+`.env.example` is included as production reference documentation only. Environment variable loading is not required for local assignment runs.
 
 ## Installation
 
@@ -404,6 +412,44 @@ Expected unauthorized response when `X-User-ID` is missing or invalid:
 }
 ```
 
+## Storage Modes
+
+### CSV Storage - Default Local Mode
+
+CSV is the default storage mode because the assignment requires CSV file storage.
+
+- Trainers can run the project locally with `bee run`.
+- No database setup is required.
+- Runtime files are generated automatically:
+  - `data/users.csv`
+  - `data/expenses.csv`
+- Generated CSV files are ignored by Git.
+
+### Postgres Storage - Production Mode
+
+Postgres support is planned as an optional production storage mode.
+
+- It will be enabled later with `storage_driver = postgres`.
+- It will use `postgres_dsn` for the database connection string.
+- It is useful for production because hosted environments may not persist local CSV files reliably.
+- Postgres is not required for local assignment testing.
+
+Current status:
+
+| Storage Item | Status |
+| --- | --- |
+| CSV storage | Fully implemented |
+| Postgres configuration | Prepared |
+| Postgres repositories | Planned for a later part |
+
+## Storage Strategy Decision
+
+The assignment requires CSV storage, so CSV remains the source of truth for local development and trainer testing.
+
+Production deployment benefits from Postgres because it provides durable persistence, safer concurrent writes, and better scalability than local CSV files. The project is being prepared so API behavior can remain the same regardless of the selected storage driver.
+
+This is a deliberate tradeoff: a little more architecture complexity later, but better deployment reliability. CSV remains the default to keep local setup simple.
+
 ## CSV Storage
 
 ### User CSV Format
@@ -461,4 +507,5 @@ The project includes unit and integration-style tests for controllers, models, v
 > This backend intentionally stays assignment-focused and does not include bonus features.
 
 - Passwords are stored as plain text for assignment compatibility at this stage.
-- Postgres, Docker, Swagger, frontend, voice input, budget features, and export features are not included.
+- Postgres configuration is prepared, but Postgres storage logic is not implemented yet.
+- Docker, Swagger, frontend, voice input, budget features, and export features are not included.
