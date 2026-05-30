@@ -506,41 +506,20 @@ Current storage architecture status:
 
 ### CSV Storage - Default Assignment Mode
 
-CSV is the default storage mode because the assignment requires CSV file storage.
+CSV is the default mode because the assignment requires CSV file storage.
 
-- It uses Go CSV/file I/O.
 - It creates `data/users.csv` and `data/expenses.csv` automatically.
-- It is best for local review and simple setup.
-- Trainers can run the project locally with `bee run`.
-- No database setup or external service is required.
-- Runtime files are generated automatically:
-  - `data/users.csv`
-  - `data/expenses.csv`
-- Generated CSV files are ignored by Git.
+- It needs no database setup.
+- It is the recommended mode for local review.
 
 ### Postgres Storage - Production Mode
 
-Postgres support is available as an optional production storage mode.
+Postgres is the optional production mode.
 
 - It is enabled with `storage_driver = postgres`.
-- It uses `postgres_dsn` for the database connection string.
-- It uses the same repository interfaces as CSV storage.
-- It stores users and expenses in relational tables.
-- It is useful for production because hosted environments may not persist local CSV files reliably.
-- Postgres is not required for local assignment testing.
-
-Current status:
-
-| Storage Item | Status |
-| --- | --- |
-| CSV storage | Fully implemented |
-| Postgres configuration | Implemented |
-| Postgres connection helper | Implemented |
-| Postgres schema SQL | Implemented |
-| Optional auto-migration helper | Implemented |
-| Postgres user repository | Implemented |
-| Postgres expense repository | Implemented |
-| Production driver switch | Implemented |
+- It requires a valid `postgres_dsn`.
+- It keeps the same API behavior as CSV mode.
+- It is not required for local assignment testing.
 
 ## Storage Driver Switching
 
@@ -654,7 +633,7 @@ Supported expense operations:
 
 The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory switches to Postgres only when `storage_driver = postgres`.
 
-## Engineering Decision: Configurable Storage Driver
+## Configurable Storage Driver
 
 This project intentionally uses a configurable storage driver instead of hardcoding one storage system.
 
@@ -687,7 +666,7 @@ Controllers do not know whether data comes from CSV or Postgres. The API respons
 
 `storage.Init()` opens a Postgres connection only when `storage_driver = postgres`. CSV mode never opens or requires Postgres. Postgres migrations can run automatically when `postgres_auto_migrate = true`.
 
-Why this is a strong engineering decision:
+## Reasoning Behind the Storage Architecture:
 
 - It follows separation of concerns.
 - It keeps business and API logic independent from storage details.
@@ -774,12 +753,6 @@ Generated CSV files are ignored by Git so local test and runtime data are not co
 - Test filtering, sorting, and summary.
 
 No Postgres setup is needed for local review.
-
-## Deployment Platform Notes
-
-The backend can be deployed to services that support Go applications. Production mode should use a managed Postgres database.
-
-Some hosting platforms do not persist local runtime files reliably, so Postgres is recommended for deployed mode. Use environment variables or platform configuration to provide the database URL, and do not commit secrets.
 
 ## Frontend Connection
 
