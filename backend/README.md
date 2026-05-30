@@ -32,14 +32,19 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [API Endpoints](#api-endpoints)
 - [Request Examples](#request-examples)
 - [Postman Testing](#postman-testing)
+- [Deployment Guide](#deployment-guide)
 - [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
 - [Storage Driver Switching](#storage-driver-switching)
 - [Postgres Production Preparation](#postgres-production-preparation)
 - [Postgres User Repository](#postgres-user-repository)
 - [Postgres Expense Repository](#postgres-expense-repository)
-- [Storage Strategy Decision](#storage-strategy-decision)
+- [Engineering Decision: Configurable Storage Driver](#engineering-decision-configurable-storage-driver)
 - [CSV Storage](#csv-storage)
+- [Production Checklist](#production-checklist)
+- [Trainer / Local Review Checklist](#trainer--local-review-checklist)
+- [Deployment Platform Notes](#deployment-platform-notes)
+- [Frontend Connection](#frontend-connection)
 - [Testing](#testing)
 - [Test Coverage](#test-coverage)
 - [Notes](#notes)
@@ -79,8 +84,10 @@ This API provides the required backend for a Personal Expense Tracker assignment
 
 ```text
 backend/
+|-- .env.example
 |-- conf/
-|   `-- app.conf
+|   |-- app.conf
+|   `-- app.prod.example.conf
 |-- controllers/
 |-- data/
 |   `-- .gitkeep
@@ -89,6 +96,7 @@ backend/
 |   |-- csv/
 |   `-- postgres/
 |-- routers/
+|-- storage/
 |-- utils/
 |-- validators/
 |-- main.go
@@ -116,6 +124,8 @@ postgres_auto_migrate = false
 ```
 
 > CSV is the default storage for this assignment. The application creates required CSV files automatically when model functions need them.
+
+`conf/app.prod.example.conf` shows a safe Postgres production example with placeholder credentials only.
 
 `.env.example` is included as production reference documentation only. Environment variable loading is not required for local assignment runs.
 
@@ -426,6 +436,43 @@ Expected unauthorized response when `X-User-ID` is missing or invalid:
 }
 ```
 
+## Deployment Guide
+
+The backend has two storage modes with the same API contract: CSV for local assignment review and Postgres for production deployment.
+
+### Local Assignment Mode: CSV
+
+CSV is the default mode. It satisfies the assignment requirement, does not require a database, and automatically creates runtime CSV files when the app needs them. This is the mode a trainer can use directly after cloning the project.
+
+Run locally:
+
+```bash
+go mod tidy
+bee run
+```
+
+Local config:
+
+```ini
+storage_driver = csv
+csv_user_file = data/users.csv
+csv_expense_file = data/expenses.csv
+```
+
+### Production Mode: Postgres
+
+Use Postgres for live deployment. This avoids depending on runtime CSV files in hosted environments and keeps API behavior the same as CSV mode.
+
+Production config:
+
+```ini
+storage_driver = postgres
+postgres_dsn = postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require
+postgres_auto_migrate = true
+```
+
+When `postgres_auto_migrate = true`, the app runs `repositories/postgres/schema.sql` at startup. When `postgres_auto_migrate = false`, the database schema must already exist.
+
 ## Repository Integration
 
 Controllers now depend on repository interfaces through the repository factory while keeping the current API behavior unchanged.
@@ -457,12 +504,15 @@ Current storage architecture status:
 
 ## Storage Modes
 
-### CSV Storage - Default Local Mode
+### CSV Storage - Default Assignment Mode
 
 CSV is the default storage mode because the assignment requires CSV file storage.
 
+- It uses Go CSV/file I/O.
+- It creates `data/users.csv` and `data/expenses.csv` automatically.
+- It is best for local review and simple setup.
 - Trainers can run the project locally with `bee run`.
-- No database setup is required.
+- No database setup or external service is required.
 - Runtime files are generated automatically:
   - `data/users.csv`
   - `data/expenses.csv`
@@ -474,6 +524,8 @@ Postgres support is available as an optional production storage mode.
 
 - It is enabled with `storage_driver = postgres`.
 - It uses `postgres_dsn` for the database connection string.
+- It uses the same repository interfaces as CSV storage.
+- It stores users and expenses in relational tables.
 - It is useful for production because hosted environments may not persist local CSV files reliably.
 - Postgres is not required for local assignment testing.
 
@@ -602,13 +654,69 @@ Supported expense operations:
 
 The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory switches to Postgres only when `storage_driver = postgres`.
 
-## Storage Strategy Decision
+## Engineering Decision: Configurable Storage Driver
 
-The assignment requires CSV storage, so CSV remains the source of truth for local development and trainer testing.
+This project intentionally uses a configurable storage driver instead of hardcoding one storage system.
 
-Production deployment benefits from Postgres because it provides durable persistence, safer concurrent writes, and better scalability than local CSV files. The project is being prepared so API behavior can remain the same regardless of the selected storage driver.
+The assignment requires CSV file storage, so CSV remains the default local driver. This keeps the project fully aligned with the assignment and allows a trainer to clone the repository and run the backend locally without installing a database.
 
-This is a deliberate tradeoff: a little more architecture complexity later, but better deployment reliability. CSV remains the default to keep local setup simple.
+For production deployment, the same API can switch to Postgres by changing configuration:
+
+```ini
+storage_driver = postgres
+```
+
+This design keeps the local assignment experience simple while making the deployed version more reliable.
+
+Architecture:
+
+```text
+HTTP Request
+   |
+Controller
+   |
+Repository Interface
+   |
+Storage Driver Factory
+   |
+CSV Repository        Postgres Repository
+(local assignment)    (production deployment)
+```
+
+Controllers do not know whether data comes from CSV or Postgres. The API response format stays the same, the same endpoints work in both storage modes, and the repository factory selects the correct implementation based on `storage_driver`.
+
+`storage.Init()` opens a Postgres connection only when `storage_driver = postgres`. CSV mode never opens or requires Postgres. Postgres migrations can run automatically when `postgres_auto_migrate = true`.
+
+Why this is a strong engineering decision:
+
+- It follows separation of concerns.
+- It keeps business and API logic independent from storage details.
+- It protects the assignment requirement by keeping CSV as default.
+- It makes production deployment practical without rewriting controllers.
+- It allows future storage implementations to be added with minimal API changes.
+- It makes the codebase easier to test because repositories can be tested independently.
+- It avoids mixing CSV and Postgres logic inside controllers.
+- It keeps local development lightweight and production deployment reliable.
+
+This means the project has two modes with the same API contract:
+
+Local review:
+
+```ini
+storage_driver = csv
+```
+
+Uses `data/users.csv` and `data/expenses.csv`.
+
+Production:
+
+```ini
+storage_driver = postgres
+```
+
+Uses Postgres tables with the same API behavior.
+
+This approach demonstrates that the project satisfies the assignment requirement while also considering how the same backend would run in a real hosted environment.
 
 ## CSV Storage
 
@@ -639,6 +747,53 @@ id,user_id,title,amount,category,note,expense_date,created_at
 | Other |
 
 Generated CSV files are ignored by Git so local test and runtime data are not committed.
+
+## Production Checklist
+
+- Set `storage_driver = postgres`.
+- Set `postgres_dsn` with the production database URL.
+- Set `postgres_auto_migrate = true` for first deployment, or run the schema manually before startup.
+- Never commit real database credentials.
+- Confirm the health endpoint works.
+- Test register and login.
+- Test expense create, list, update, and delete.
+- Test filtering and sorting.
+- Test the summary endpoint.
+- Set frontend `NEXT_PUBLIC_API_BASE_URL` to the deployed backend URL.
+
+## Trainer / Local Review Checklist
+
+- Clone the repository.
+- Keep `storage_driver = csv`.
+- Run `go mod tidy`.
+- Run `go test ./...`.
+- Run `bee run`.
+- Test the health endpoint.
+- Register and login.
+- Create, list, update, and delete expenses.
+- Test filtering, sorting, and summary.
+
+No Postgres setup is needed for local review.
+
+## Deployment Platform Notes
+
+The backend can be deployed to services that support Go applications. Production mode should use a managed Postgres database.
+
+Some hosting platforms do not persist local runtime files reliably, so Postgres is recommended for deployed mode. Use environment variables or platform configuration to provide the database URL, and do not commit secrets.
+
+## Frontend Connection
+
+The Next.js frontend should point to the deployed backend API with:
+
+```ini
+NEXT_PUBLIC_API_BASE_URL=https://YOUR_BACKEND_URL/api/v1
+```
+
+For local development:
+
+```ini
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
+```
 
 ## Testing
 

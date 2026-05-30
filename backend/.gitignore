@@ -1,8 +1,19 @@
-*.exe
-*.exe~
-*.test
+# Runtime CSV files
 data/*.csv
 !data/.gitkeep
+
+# Environment/secrets
+.env
+.env.local
+*.local
+
+# Coverage
 coverage
 coverage.out
 *.cover
+
+# Build artifacts
+*.exe
+*.exe~
+*.test
+backend.exe
