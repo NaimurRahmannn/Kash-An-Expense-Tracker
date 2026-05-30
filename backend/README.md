@@ -34,6 +34,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Postman Testing](#postman-testing)
 - [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
+- [Postgres Production Preparation](#postgres-production-preparation)
 - [Storage Strategy Decision](#storage-strategy-decision)
 - [CSV Storage](#csv-storage)
 - [Testing](#testing)
@@ -55,6 +56,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Spending summary | Yes |
 | CSV storage | Yes |
 | Postgres configuration | Prepared for later |
+| Postgres connection foundation | Prepared for later |
 | Repository integration | Controllers use repository factory |
 
 ## Tech Stack
@@ -77,6 +79,8 @@ backend/
 |   `-- .gitkeep
 |-- models/
 |-- repositories/
+|   |-- csv/
+|   `-- postgres/
 |-- routers/
 |-- utils/
 |-- validators/
@@ -438,6 +442,8 @@ Current storage architecture status:
 | Repository interfaces | Implemented |
 | CSV repository adapters | Implemented |
 | Controllers use repository factory | Implemented |
+| Postgres connection helper | Implemented |
+| Postgres schema and migration helper | Implemented |
 | Postgres repository | Planned next |
 
 ## Storage Modes
@@ -468,7 +474,67 @@ Current status:
 | --- | --- |
 | CSV storage | Fully implemented |
 | Postgres configuration | Prepared |
+| Postgres connection helper | Prepared |
+| Postgres schema SQL | Prepared |
+| Optional auto-migration helper | Prepared |
 | Postgres repositories | Planned for a later part |
+
+## Postgres Production Preparation
+
+Postgres connection and schema foundations have been added for future production deployment. CSV remains the default local storage mode, and Postgres is not required to run or test the assignment locally.
+
+Prepared Postgres pieces:
+
+- `repositories/postgres.OpenDB`
+- `repositories/postgres.ConfigurePool`
+- `repositories/postgres.RunMigrations`
+- `repositories/postgres/schema.sql`
+- pgx stdlib driver registration for `database/sql`
+
+Auto-migration support is prepared through `schema.sql` and `RunMigrations`, but migrations are not run automatically yet.
+
+### Schema Overview
+
+`users` table:
+
+| Column |
+| --- |
+| `id` |
+| `name` |
+| `email` |
+| `password` |
+| `created_at` |
+
+`expenses` table:
+
+| Column |
+| --- |
+| `id` |
+| `user_id` |
+| `title` |
+| `amount` |
+| `category` |
+| `note` |
+| `expense_date` |
+| `created_at` |
+
+### Future Production Config
+
+Future production mode will use:
+
+```ini
+storage_driver = postgres
+postgres_dsn = postgres://USER:PASSWORD@HOST:PORT/DB?sslmode=require
+postgres_auto_migrate = true
+```
+
+Default local assignment mode remains:
+
+```ini
+storage_driver = csv
+```
+
+Postgres repositories will be added later.
 
 ## Storage Strategy Decision
 
