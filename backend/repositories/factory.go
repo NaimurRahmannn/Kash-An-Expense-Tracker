@@ -7,9 +7,11 @@ import (
 	"backend/storage"
 )
 
+var getStorageDriver = config.GetStorageDriver
+
 // NewUserRepository creates a user repository for the configured storage driver.
 func NewUserRepository() UserRepository {
-	switch config.GetStorageDriver() {
+	switch getStorageDriver() {
 	case config.StorageDriverPostgres:
 		return postgresrepo.NewUserRepository(storage.PostgresDB())
 	case config.StorageDriverCSV:
@@ -21,7 +23,7 @@ func NewUserRepository() UserRepository {
 
 // NewExpenseRepository creates an expense repository for the configured storage driver.
 func NewExpenseRepository() ExpenseRepository {
-	switch config.GetStorageDriver() {
+	switch getStorageDriver() {
 	case config.StorageDriverPostgres:
 		return postgresrepo.NewExpenseRepository(storage.PostgresDB())
 	case config.StorageDriverCSV:

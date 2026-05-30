@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"testing"
 
+	"backend/config"
 	csvrepo "backend/repositories/csv"
 	postgresrepo "backend/repositories/postgres"
 	"backend/storage"
@@ -53,7 +54,7 @@ func TestNewRepositoriesReturnPostgresImplementationsForPostgresDriver(t *testin
 }
 
 func TestNewRepositoriesReturnCSVImplementationsForUnknownDriver(t *testing.T) {
-	useStorageDriverConfig(t, "sqlite")
+	useFactoryStorageDriver(t, config.StorageDriver("sqlite"))
 
 	userRepository := NewUserRepository()
 	if _, ok := userRepository.(*csvrepo.UserRepository); !ok {
@@ -69,6 +70,8 @@ func TestNewRepositoriesReturnCSVImplementationsForUnknownDriver(t *testing.T) {
 func useStorageDriverConfig(t *testing.T, driver string) {
 	t.Helper()
 
+	t.Setenv("STORAGE_DRIVER", "")
+
 	previousDriver := beego.AppConfig.DefaultString("storage_driver", "csv")
 	if err := beego.AppConfig.Set("storage_driver", driver); err != nil {
 		t.Fatalf("expected storage_driver test config to be set: %v", err)
@@ -77,5 +80,19 @@ func useStorageDriverConfig(t *testing.T, driver string) {
 	t.Cleanup(func() {
 		_ = storage.Close()
 		_ = beego.AppConfig.Set("storage_driver", previousDriver)
+	})
+}
+
+func useFactoryStorageDriver(t *testing.T, driver config.StorageDriver) {
+	t.Helper()
+
+	previousGetStorageDriver := getStorageDriver
+	getStorageDriver = func() config.StorageDriver {
+		return driver
+	}
+
+	t.Cleanup(func() {
+		getStorageDriver = previousGetStorageDriver
+		_ = storage.Close()
 	})
 }

@@ -8,7 +8,11 @@ import (
 	"backend/repositories/postgres"
 )
 
-var postgresDB *sql.DB
+var (
+	postgresDB            *sql.DB
+	openPostgresDB        = postgres.OpenDB
+	runPostgresMigrations = postgres.RunMigrations
+)
 
 // Init initializes the configured storage backend.
 func Init() error {
@@ -21,14 +25,14 @@ func Init() error {
 		return errors.New("postgres dsn is required when storage_driver=postgres")
 	}
 
-	db, err := postgres.OpenDB(dsn)
+	db, err := openPostgresDB(dsn)
 	if err != nil {
 		return err
 	}
 	postgresDB = db
 
 	if config.IsPostgresAutoMigrateEnabled() {
-		if err := postgres.RunMigrations(postgresDB); err != nil {
+		if err := runPostgresMigrations(postgresDB); err != nil {
 			_ = Close()
 			return err
 		}

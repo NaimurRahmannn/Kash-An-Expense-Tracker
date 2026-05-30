@@ -7,23 +7,56 @@ import (
 )
 
 func TestOpenDBRequiresDSN(t *testing.T) {
-	_, err := OpenDB("  ")
-	if err == nil {
-		t.Fatal("expected empty DSN to return an error")
+	tests := []struct {
+		name string
+		dsn  string
+	}{
+		{
+			name: "empty DSN",
+		},
+		{
+			name: "whitespace DSN",
+			dsn:  "   ",
+		},
 	}
-	if !strings.Contains(err.Error(), "postgres dsn is required") {
-		t.Fatalf("expected postgres DSN error, got %q", err.Error())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, err := OpenDB(tt.dsn)
+			if err == nil {
+				t.Fatal("expected empty DSN to return an error")
+			}
+			if !strings.Contains(err.Error(), "postgres dsn is required") {
+				t.Fatalf("expected postgres DSN error, got %q", err.Error())
+			}
+			if db != nil {
+				t.Fatal("expected DB to be nil")
+			}
+		})
 	}
 }
 
-func TestConfigurePoolDoesNotPanic(t *testing.T) {
+func TestOpenDBReturnsErrorForInvalidDSN(t *testing.T) {
+	db, err := OpenDB("postgres://%")
+	if err == nil {
+		t.Fatal("expected invalid DSN to return an error")
+	}
+	if db != nil {
+		t.Fatal("expected DB to be nil")
+	}
+}
+
+func TestConfigurePoolNilDoesNotPanic(t *testing.T) {
+	ConfigurePool(nil)
+}
+
+func TestConfigurePoolDummyDBDoesNotPanic(t *testing.T) {
 	db, err := sql.Open("pgx", "postgres://dummy")
 	if err != nil {
 		t.Fatalf("sql.Open failed: %v", err)
 	}
 	defer db.Close()
 
-	ConfigurePool(nil)
 	ConfigurePool(db)
 }
 
