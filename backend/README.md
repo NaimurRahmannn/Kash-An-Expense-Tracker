@@ -36,6 +36,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Storage Modes](#storage-modes)
 - [Postgres Production Preparation](#postgres-production-preparation)
 - [Postgres User Repository](#postgres-user-repository)
+- [Postgres Expense Repository](#postgres-expense-repository)
 - [Storage Strategy Decision](#storage-strategy-decision)
 - [CSV Storage](#csv-storage)
 - [Testing](#testing)
@@ -59,6 +60,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Postgres configuration | Prepared for later |
 | Postgres connection foundation | Prepared for later |
 | Postgres user repository | Implemented, not active yet |
+| Postgres expense repository | Implemented, not active yet |
 | Repository integration | Controllers use repository factory |
 
 ## Tech Stack
@@ -447,8 +449,8 @@ Current storage architecture status:
 | Postgres connection helper | Implemented |
 | Postgres schema and migration helper | Implemented |
 | Postgres user repository | Implemented |
-| Postgres expense repository | Planned next |
-| Production driver switch | Planned after both repositories are ready |
+| Postgres expense repository | Implemented |
+| Production driver switch | Planned next |
 
 ## Storage Modes
 
@@ -482,8 +484,8 @@ Current status:
 | Postgres schema SQL | Prepared |
 | Optional auto-migration helper | Prepared |
 | Postgres user repository | Implemented |
-| Postgres expense repository | Planned next |
-| Production driver switch | Planned after both repositories are ready |
+| Postgres expense repository | Implemented |
+| Production driver switch | Planned next |
 
 ## Postgres Production Preparation
 
@@ -555,6 +557,21 @@ Supported user operations:
 - Get next ID for interface compatibility
 
 The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory will switch to Postgres only after both user and expense repositories are implemented.
+
+## Postgres Expense Repository
+
+The Postgres expense repository has been implemented for future production storage support.
+
+Supported expense operations:
+
+- Create expense
+- Get expenses by user ID
+- Get expense by ID with ownership check
+- Update expense with ownership check
+- Delete expense with ownership check
+- Get next expense ID for interface compatibility
+
+The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory will switch to Postgres in a later part after safe startup wiring is added.
 
 ## Storage Strategy Decision
 
