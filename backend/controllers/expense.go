@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"backend/models"
+	"backend/repositories"
 	"backend/validators"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -65,7 +66,7 @@ func (c *ExpenseController) Create() {
 		Note:        input.Note,
 		ExpenseDate: input.ExpenseDate,
 	}
-	if err := models.CreateExpense(expense); err != nil {
+	if err := c.expenseRepository().CreateExpense(expense); err != nil {
 		logs.Error("failed to create expense: %v", err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
 		return
@@ -87,7 +88,7 @@ func (c *ExpenseController) List() {
 		return
 	}
 
-	expenses, err := models.GetExpensesByUserID(userID)
+	expenses, err := c.expenseRepository().GetExpensesByUserID(userID)
 	if err != nil {
 		logs.Error("failed to list expenses for user ID %d: %v", userID, err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
@@ -114,7 +115,7 @@ func (c *ExpenseController) Summary() {
 		return
 	}
 
-	expenses, err := models.GetExpensesByUserID(userID)
+	expenses, err := c.expenseRepository().GetExpensesByUserID(userID)
 	if err != nil {
 		logs.Error("failed to summarize expenses for user ID %d: %v", userID, err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
@@ -137,7 +138,7 @@ func (c *ExpenseController) GetOne() {
 		return
 	}
 
-	expense, err := models.GetExpenseByID(id, userID)
+	expense, err := c.expenseRepository().GetExpenseByID(id, userID)
 	if err != nil {
 		logs.Error("failed to get expense ID %d for user ID %d: %v", id, userID, err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
@@ -184,7 +185,7 @@ func (c *ExpenseController) Update() {
 		ExpenseDate: input.ExpenseDate,
 		CreatedAt:   existingExpense.CreatedAt,
 	}
-	if err := models.UpdateExpense(updatedExpense); err != nil {
+	if err := c.expenseRepository().UpdateExpense(updatedExpense); err != nil {
 		c.handleExpenseWriteError(err, "Failed to update expense")
 		return
 	}
@@ -209,7 +210,7 @@ func (c *ExpenseController) Delete() {
 		return
 	}
 
-	if err := models.DeleteExpense(id, userID); err != nil {
+	if err := c.expenseRepository().DeleteExpense(id, userID); err != nil {
 		c.handleExpenseWriteError(err, "Failed to delete expense")
 		return
 	}
@@ -228,7 +229,7 @@ func (c *ExpenseController) getAuthenticatedUserID() (int, bool) {
 		return 0, false
 	}
 
-	user, err := models.GetUserByID(userID)
+	user, err := c.userRepository().GetUserByID(userID)
 	if err != nil {
 		logs.Error("failed to authenticate user ID %d: %v", userID, err)
 		return 0, false
@@ -251,7 +252,7 @@ func (c *ExpenseController) parseExpenseIDParam() (int, bool) {
 }
 
 func (c *ExpenseController) getExistingExpense(id int, userID int, internalMessage string) (*models.Expense, bool) {
-	expense, err := models.GetExpenseByID(id, userID)
+	expense, err := c.expenseRepository().GetExpenseByID(id, userID)
 	if err != nil {
 		logs.Error("failed to get expense ID %d for user ID %d: %v", id, userID, err)
 		c.ErrorResponse(http.StatusInternalServerError, internalMessage)
@@ -263,6 +264,14 @@ func (c *ExpenseController) getExistingExpense(id int, userID int, internalMessa
 	}
 
 	return expense, true
+}
+
+func (c *ExpenseController) userRepository() repositories.UserRepository {
+	return repositories.NewUserRepository()
+}
+
+func (c *ExpenseController) expenseRepository() repositories.ExpenseRepository {
+	return repositories.NewExpenseRepository()
 }
 
 func (c *ExpenseController) handleExpenseWriteError(err error, internalMessage string) {

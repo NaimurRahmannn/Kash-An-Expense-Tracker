@@ -32,7 +32,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [API Endpoints](#api-endpoints)
 - [Request Examples](#request-examples)
 - [Postman Testing](#postman-testing)
-- [Repository Abstraction](#repository-abstraction)
+- [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
 - [Storage Strategy Decision](#storage-strategy-decision)
 - [CSV Storage](#csv-storage)
@@ -55,7 +55,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Spending summary | Yes |
 | CSV storage | Yes |
 | Postgres configuration | Prepared for later |
-| Repository abstraction | Prepared for multiple storage drivers |
+| Repository integration | Controllers use repository factory |
 
 ## Tech Stack
 
@@ -415,15 +415,18 @@ Expected unauthorized response when `X-User-ID` is missing or invalid:
 }
 ```
 
-## Repository Abstraction
+## Repository Integration
 
-Repository interfaces were added to prepare the project for multiple storage drivers while keeping the current API behavior unchanged.
+Controllers now depend on repository interfaces through the repository factory while keeping the current API behavior unchanged.
 
 - `repositories.UserRepository` defines user persistence behavior.
 - `repositories.ExpenseRepository` defines expense persistence behavior.
+- `repositories.NewUserRepository()` provides the active user repository.
+- `repositories.NewExpenseRepository()` provides the active expense repository.
 - CSV repository adapters wrap the existing model functions.
+- CSV remains the active implementation by default.
 - CSV behavior remains unchanged.
-- Postgres repositories will be added later.
+- Postgres will be added as a new repository implementation later.
 - CSV remains the default for local assignment mode.
 
 Current storage architecture status:
@@ -432,10 +435,10 @@ Current storage architecture status:
 | --- | --- |
 | CSV storage | Implemented and default |
 | Storage config helper | Implemented |
-| Repository interfaces | Added |
-| CSV repository adapters | Added |
-| Postgres repository | Planned |
-| Controller/service switching | Planned next |
+| Repository interfaces | Implemented |
+| CSV repository adapters | Implemented |
+| Controllers use repository factory | Implemented |
+| Postgres repository | Planned next |
 
 ## Storage Modes
 

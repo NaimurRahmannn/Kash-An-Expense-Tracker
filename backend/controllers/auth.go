@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"backend/models"
+	"backend/repositories"
 	"backend/validators"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -29,7 +30,8 @@ func (c *AuthController) Register() {
 		return
 	}
 
-	existingUser, err := models.GetUserByEmail(input.Email)
+	userRepo := c.userRepository()
+	existingUser, err := userRepo.GetUserByEmail(input.Email)
 	if err != nil {
 		logs.Error("failed to check existing user: %v", err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
@@ -45,7 +47,7 @@ func (c *AuthController) Register() {
 		Email:    input.Email,
 		Password: input.Password,
 	}
-	if err := models.CreateUser(user); err != nil {
+	if err := userRepo.CreateUser(user); err != nil {
 		logs.Error("failed to create user: %v", err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
 		return
@@ -61,7 +63,7 @@ func (c *AuthController) Login() {
 		return
 	}
 
-	user, err := models.GetUserByEmail(input.Email)
+	user, err := c.userRepository().GetUserByEmail(input.Email)
 	if err != nil {
 		logs.Error("failed to get user by email: %v", err)
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
@@ -77,6 +79,10 @@ func (c *AuthController) Login() {
 		Name:   user.Name,
 		Email:  user.Email,
 	})
+}
+
+func (c *AuthController) userRepository() repositories.UserRepository {
+	return repositories.NewUserRepository()
 }
 
 func (c *AuthController) parseRegisterInput() (validators.RegisterInput, bool) {
