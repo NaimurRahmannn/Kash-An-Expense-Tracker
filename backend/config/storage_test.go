@@ -46,6 +46,7 @@ func TestGetStorageDriver(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			clearStorageEnvironment(t)
 			useTestStringConfig(t, map[string]string{"storage_driver": tt.value}, tt.readError)
 
 			if got := GetStorageDriver(); got != tt.want {
@@ -76,6 +77,7 @@ func TestStorageDriverChecks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			clearStorageEnvironment(t)
 			useTestStringConfig(t, map[string]string{"storage_driver": tt.value}, false)
 
 			if got := IsCSVStorage(); got != tt.wantCSV {
@@ -113,6 +115,7 @@ func TestGetPostgresDSN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			clearStorageEnvironment(t)
 			useTestStringConfig(t, map[string]string{"postgres_dsn": tt.value}, tt.readError)
 
 			if got := GetPostgresDSN(); got != tt.want {
@@ -148,6 +151,7 @@ func TestIsPostgresAutoMigrateEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			clearStorageEnvironment(t)
 			useTestBoolConfig(t, tt.value, tt.readError)
 
 			if got := IsPostgresAutoMigrateEnabled(); got != tt.want {
@@ -155,6 +159,74 @@ func TestIsPostgresAutoMigrateEnabled(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStorageEnvironmentOverrides(t *testing.T) {
+	tests := []struct {
+		name string
+		run  func(t *testing.T)
+	}{
+		{
+			name: "storage driver environment overrides app config",
+			run: func(t *testing.T) {
+				useTestStringConfig(t, map[string]string{"storage_driver": "csv"}, false)
+				t.Setenv("STORAGE_DRIVER", "postgres")
+
+				if got := GetStorageDriver(); got != StorageDriverPostgres {
+					t.Fatalf("expected storage driver %q, got %q", StorageDriverPostgres, got)
+				}
+			},
+		},
+		{
+			name: "postgres dsn environment overrides app config",
+			run: func(t *testing.T) {
+				useTestStringConfig(t, map[string]string{"postgres_dsn": ""}, false)
+				t.Setenv("POSTGRES_DSN", " postgres://user:pass@host:5432/db ")
+
+				want := "postgres://user:pass@host:5432/db"
+				if got := GetPostgresDSN(); got != want {
+					t.Fatalf("expected postgres DSN %q, got %q", want, got)
+				}
+			},
+		},
+		{
+			name: "postgres auto migrate environment overrides app config",
+			run: func(t *testing.T) {
+				useTestBoolConfig(t, false, false)
+				t.Setenv("POSTGRES_AUTO_MIGRATE", "true")
+
+				if !IsPostgresAutoMigrateEnabled() {
+					t.Fatal("expected postgres auto migrate to be enabled")
+				}
+			},
+		},
+		{
+			name: "invalid postgres auto migrate environment is false",
+			run: func(t *testing.T) {
+				useTestBoolConfig(t, true, false)
+				t.Setenv("POSTGRES_AUTO_MIGRATE", "not-bool")
+
+				if IsPostgresAutoMigrateEnabled() {
+					t.Fatal("expected invalid postgres auto migrate environment to be false")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearStorageEnvironment(t)
+			tt.run(t)
+		})
+	}
+}
+
+func clearStorageEnvironment(t *testing.T) {
+	t.Helper()
+
+	t.Setenv("STORAGE_DRIVER", "")
+	t.Setenv("POSTGRES_DSN", "")
+	t.Setenv("POSTGRES_AUTO_MIGRATE", "")
 }
 
 func useTestStringConfig(t *testing.T, values map[string]string, readError bool) {

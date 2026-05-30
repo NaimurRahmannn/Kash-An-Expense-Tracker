@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"strconv"
 	"strings"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -27,10 +29,7 @@ var (
 
 // GetStorageDriver returns the configured storage driver, defaulting to CSV.
 func GetStorageDriver() StorageDriver {
-	value, err := appConfigString("storage_driver")
-	if err != nil {
-		return StorageDriverCSV
-	}
+	value := getStringConfig("storage_driver", "STORAGE_DRIVER")
 
 	switch StorageDriver(strings.ToLower(strings.TrimSpace(value))) {
 	case StorageDriverPostgres:
@@ -54,20 +53,34 @@ func IsPostgresStorage() bool {
 
 // GetPostgresDSN returns the configured Postgres connection string.
 func GetPostgresDSN() string {
-	value, err := appConfigString("postgres_dsn")
-	if err != nil {
-		return ""
-	}
-
-	return strings.TrimSpace(value)
+	return getStringConfig("postgres_dsn", "POSTGRES_DSN")
 }
 
 // IsPostgresAutoMigrateEnabled reports whether future Postgres auto-migration is enabled.
 func IsPostgresAutoMigrateEnabled() bool {
+	envValue := strings.TrimSpace(os.Getenv("POSTGRES_AUTO_MIGRATE"))
+	if envValue != "" {
+		enabled, err := strconv.ParseBool(envValue)
+		return err == nil && enabled
+	}
+
 	value, err := appConfigBool("postgres_auto_migrate")
 	if err != nil {
 		return false
 	}
 
 	return value
+}
+
+func getStringConfig(configKey string, envKey string) string {
+	if value := strings.TrimSpace(os.Getenv(envKey)); value != "" {
+		return value
+	}
+
+	value, err := appConfigString(configKey)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(value)
 }

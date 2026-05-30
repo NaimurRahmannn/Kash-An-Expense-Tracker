@@ -127,7 +127,7 @@ postgres_auto_migrate = false
 
 `conf/app.prod.example.conf` shows a safe Postgres production example with placeholder credentials only.
 
-`.env.example` is included as production reference documentation only. Environment variable loading is not required for local assignment runs.
+Deployment environment variables can override the storage settings in `conf/app.conf`. Environment variable loading from a local `.env` file is not required for local assignment runs.
 
 ## Installation
 
@@ -469,6 +469,14 @@ Production config:
 storage_driver = postgres
 postgres_dsn = postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require
 postgres_auto_migrate = true
+```
+
+Equivalent Render environment variables:
+
+```bash
+STORAGE_DRIVER=postgres
+POSTGRES_DSN=postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require
+POSTGRES_AUTO_MIGRATE=true
 ```
 
 When `postgres_auto_migrate = true`, the app runs `repositories/postgres/schema.sql` at startup. When `postgres_auto_migrate = false`, the database schema must already exist.
