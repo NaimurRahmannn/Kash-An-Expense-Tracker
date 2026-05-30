@@ -35,6 +35,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
 - [Postgres Production Preparation](#postgres-production-preparation)
+- [Postgres User Repository](#postgres-user-repository)
 - [Storage Strategy Decision](#storage-strategy-decision)
 - [CSV Storage](#csv-storage)
 - [Testing](#testing)
@@ -57,6 +58,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | CSV storage | Yes |
 | Postgres configuration | Prepared for later |
 | Postgres connection foundation | Prepared for later |
+| Postgres user repository | Implemented, not active yet |
 | Repository integration | Controllers use repository factory |
 
 ## Tech Stack
@@ -444,7 +446,9 @@ Current storage architecture status:
 | Controllers use repository factory | Implemented |
 | Postgres connection helper | Implemented |
 | Postgres schema and migration helper | Implemented |
-| Postgres repository | Planned next |
+| Postgres user repository | Implemented |
+| Postgres expense repository | Planned next |
+| Production driver switch | Planned after both repositories are ready |
 
 ## Storage Modes
 
@@ -477,7 +481,9 @@ Current status:
 | Postgres connection helper | Prepared |
 | Postgres schema SQL | Prepared |
 | Optional auto-migration helper | Prepared |
-| Postgres repositories | Planned for a later part |
+| Postgres user repository | Implemented |
+| Postgres expense repository | Planned next |
+| Production driver switch | Planned after both repositories are ready |
 
 ## Postgres Production Preparation
 
@@ -535,6 +541,20 @@ storage_driver = csv
 ```
 
 Postgres repositories will be added later.
+
+## Postgres User Repository
+
+The Postgres user repository has been implemented for future production storage support.
+
+Supported user operations:
+
+- Create user
+- Get all users
+- Get user by email
+- Get user by ID
+- Get next ID for interface compatibility
+
+The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory will switch to Postgres only after both user and expense repositories are implemented.
 
 ## Storage Strategy Decision
 

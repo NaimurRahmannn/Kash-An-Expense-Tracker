@@ -3,6 +3,7 @@ module backend
 go 1.25.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/beego/beego/v2 v2.3.10
 	github.com/jackc/pgx/v5 v5.9.2
 )

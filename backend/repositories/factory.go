@@ -9,7 +9,7 @@ import (
 func NewUserRepository() UserRepository {
 	switch config.GetStorageDriver() {
 	case config.StorageDriverPostgres:
-		// TODO: return Postgres repository when implemented.
+		// TODO: return Postgres repository after expense repository is implemented.
 		return csvrepo.NewUserRepository()
 	case config.StorageDriverCSV:
 		return csvrepo.NewUserRepository()
@@ -22,7 +22,7 @@ func NewUserRepository() UserRepository {
 func NewExpenseRepository() ExpenseRepository {
 	switch config.GetStorageDriver() {
 	case config.StorageDriverPostgres:
-		// TODO: return Postgres repository when implemented.
+		// TODO: return Postgres repository after expense repository is implemented.
 		return csvrepo.NewExpenseRepository()
 	case config.StorageDriverCSV:
 		return csvrepo.NewExpenseRepository()
