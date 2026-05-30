@@ -138,6 +138,20 @@ Create `.env.local` from `.env.example`:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
+For Vercel, set the production environment variable to the Render backend URL with the API prefix:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api/v1
+```
+
+Do not use only the Render root URL. The backend health endpoint is:
+
+```txt
+https://YOUR_RENDER_BACKEND_URL/api/v1/health
+```
+
+After changing `NEXT_PUBLIC_API_BASE_URL` in Vercel, redeploy the frontend so Next.js bakes the new public environment variable into the client bundle.
+
 ## Engineering Decisions
 
 ### 1. Strict Voice Input Format Instead Of Free-Form NLP
