@@ -9,7 +9,10 @@ import (
 
 func init() {
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowOrigins: []string{"http://localhost:3000"},
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"https://kash-kohl.vercel.app",
+		},
 		AllowMethods: []string{
 			"GET",
 			"POST",
