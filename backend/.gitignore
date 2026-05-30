@@ -1,6 +1,8 @@
-backend.exe
 *.exe
 *.exe~
 *.test
 data/*.csv
 !data/.gitkeep
+coverage
+coverage.out
+*.cover
