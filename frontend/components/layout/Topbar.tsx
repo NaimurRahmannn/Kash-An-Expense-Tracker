@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  CalendarDays,
-  ChevronDown,
   LogOut,
   Search,
   WalletCards,
