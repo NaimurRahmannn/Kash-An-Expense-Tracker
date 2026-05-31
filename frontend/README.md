@@ -58,7 +58,6 @@ The backend uses Go + Beego and stores data in CSV as part of the assignment req
 | Edit expense | Complete | Uses `GET` and `PUT /expenses/:id` |
 | Delete expense | Complete | Confirmation modal before DELETE |
 | Profile | Present | Displays session/account context |
-| Settings | Present | Shows API/session configuration context |
 | Voice Input | Complete | Strict guided parser with editable review |
 | Charts | Not implemented | Future improvement |
 
@@ -234,7 +233,7 @@ Frontend validation provides faster feedback and better UX. The backend remains 
 
 ### 8. AppShell And Protected Routes
 
-Dashboard, expenses, voice, profile, and settings use a shared `AppShell`.
+Dashboard, expenses, voice, and profile use a shared `AppShell`.
 
 `AppShell` keeps sidebar/topbar layout consistent. `ProtectedRoute` prevents unauthenticated users from accessing app pages. Login and register remain public.
 
@@ -299,7 +298,7 @@ Parsed data should always be reviewed before saving.
 | Add/Edit forms | Sends only `title`, `amount`, `category`, `note`, and `expense_date` |
 | Delete | Uses confirmation modal to prevent accidental data loss |
 | Voice Input | Bonus feature built on existing create API with strict parsing and manual review |
-| Settings/Profile | Shows session/API context without faking unsupported backend profile updates |
+| Profile | Shows session context without faking unsupported backend profile updates |
 
 ## Current Status
 
@@ -315,7 +314,7 @@ Completed frontend parts:
 - Edit expense
 - Delete expense with confirmation
 - Voice Input bonus feature
-- Profile and settings pages
+- Profile page
 
 Chart library integration is not implemented yet.
 

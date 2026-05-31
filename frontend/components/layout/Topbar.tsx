@@ -54,15 +54,6 @@ export function Topbar({ title }: TopbarProps) {
             <LogOut className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-
-        <button
-          type="button"
-          className="mt-6 inline-flex h-14 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 text-base font-semibold text-slate-800 shadow-sm shadow-slate-200/50 transition hover:border-violet-200 hover:bg-violet-50"
-        >
-          <CalendarDays className="h-5 w-5 text-slate-700" aria-hidden="true" />
-          May 12 - May 18, 2025
-          <ChevronDown className="h-4 w-4 text-slate-700" aria-hidden="true" />
-        </button>
       </div>
 
       <div className="hidden flex-col gap-4 px-4 py-5 sm:px-7 lg:flex lg:flex-row lg:items-center lg:justify-between lg:px-8">
@@ -75,14 +66,7 @@ export function Topbar({ title }: TopbarProps) {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <button
-            type="button"
-            className="inline-flex h-12 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm shadow-slate-200/50 transition hover:border-violet-200 hover:bg-violet-50"
-          >
-            <CalendarDays className="h-4 w-4 text-slate-600" aria-hidden="true" />
-            May 12 - May 18, 2025
-            <ChevronDown className="h-4 w-4 text-slate-500" aria-hidden="true" />
-          </button>
+      
 
           <div className="relative w-full sm:w-67.5">
             <Search

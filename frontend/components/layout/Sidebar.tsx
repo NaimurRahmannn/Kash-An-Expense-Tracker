@@ -9,7 +9,6 @@ import {
   LogOut,
   Mic,
   ReceiptText,
-  Settings,
   User,
   WalletCards,
 } from "lucide-react";
@@ -44,14 +43,7 @@ const navItems = [
     href: "/profile",
     icon: User,
   },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
 ];
-
-const mobileNavItems = navItems.filter((item) => item.href !== "/settings");
 
 function getInitials(name: string) {
   return name
@@ -158,7 +150,7 @@ export function Sidebar() {
         className="fixed inset-x-0 bottom-0 z-50 grid h-24 grid-cols-5 items-end rounded-t-4xl border border-slate-100 bg-white/95 px-5 pb-4 pt-3 shadow-[0_-10px_34px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden"
         aria-label="Mobile navigation"
       >
-        {mobileNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActivePath(pathname, item.href);
           const isAdd = item.href === "/expenses/new";
