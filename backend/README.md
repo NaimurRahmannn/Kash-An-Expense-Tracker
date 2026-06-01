@@ -32,6 +32,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [API Endpoints](#api-endpoints)
 - [Request Examples](#request-examples)
 - [Postman Testing](#postman-testing)
+- [Swagger / API Documentation](#swagger--api-documentation)
 - [Deployment Guide](#deployment-guide)
 - [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
@@ -69,6 +70,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Postgres user repository | Implemented |
 | Postgres expense repository | Implemented |
 | Repository integration | Controllers use repository factory |
+| Swagger API documentation | Yes |
 
 ## Tech Stack
 
@@ -91,6 +93,9 @@ backend/
 |-- controllers/
 |-- data/
 |   `-- .gitkeep
+|-- docs/
+|   |-- docs.go
+|   `-- swagger.json
 |-- models/
 |-- repositories/
 |   |-- csv/
@@ -114,6 +119,7 @@ appname = expense-tracker-api
 httpport = 8080
 runmode = dev
 copyrequestbody = true
+enable_swagger = true
 
 storage_driver = csv
 csv_user_file = data/users.csv
@@ -434,6 +440,42 @@ Expected unauthorized response when `X-User-ID` is missing or invalid:
   "success": false,
   "message": "Unauthorized"
 }
+```
+
+## Swagger / API Documentation
+
+Swagger is enabled for local API exploration when this config value is true:
+
+```ini
+enable_swagger = true
+```
+
+The Swagger docs reflect the current REST API under `/api/v1`. Protected expense and summary routes use the `X-User-ID` header. After login, copy the returned `user_id` value into `X-User-ID` before calling expense endpoints.
+
+Passwords are hashed internally and never returned in API responses.
+
+Generate docs:
+
+```bash
+bee generate docs
+```
+
+Run the API:
+
+```bash
+bee run
+```
+
+Open Swagger UI:
+
+```text
+http://localhost:8080/swagger/
+```
+
+The served JSON spec is available at:
+
+```text
+http://localhost:8080/swagger/doc.json
 ```
 
 ## Deployment Guide
@@ -814,4 +856,4 @@ The project includes unit and integration-style tests for controllers, models, v
 
 - Passwords are hashed with bcrypt before being stored in CSV or Postgres.
 - Postgres storage is wired for production mode, while CSV remains the default for local assignment runs.
-- Docker, Swagger, frontend, voice input, budget features, and export features are not included.
+- Docker, frontend, voice input, budget features, and export features are not included.

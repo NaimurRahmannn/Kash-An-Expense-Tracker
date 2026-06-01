@@ -12,6 +12,9 @@ coverage
 coverage.out
 *.cover
 
+# Bee raw Swagger output; committed Swagger spec lives in backend/docs
+swagger/
+
 # Build artifacts
 *.exe
 *.exe~

@@ -46,6 +46,18 @@ type ExpenseSummaryResponse struct {
 }
 
 // Create creates an expense for the authenticated user.
+// @Title CreateExpense
+// @Summary Create an expense
+// @Description Creates an expense for the authenticated user. Use the user_id returned by login as X-User-ID.
+// @Accept json
+// @Security XUserID
+// @Param X-User-ID header string true "Authenticated user ID returned by login"
+// @Param body body controllers.ExpenseRequest true "Expense request. Allowed categories: Food, Transport, Housing, Entertainment, Shopping, Healthcare, Education, Utilities, Other."
+// @Success 201 {object} controllers.ExpenseSuccessResponse "Expense created successfully"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} controllers.ErrorResponse "Unauthorized"
+// @Failure 500 {object} controllers.ErrorResponse "Internal server error"
+// @router /expenses [post]
 func (c *ExpenseController) Create() {
 	userID, ok := c.getAuthenticatedUserID()
 	if !ok {
@@ -76,6 +88,23 @@ func (c *ExpenseController) Create() {
 }
 
 // List returns paginated expenses for the authenticated user.
+// @Title ListExpenses
+// @Summary List expenses
+// @Description Returns authenticated user's expenses with optional pagination, filtering, and sorting.
+// @Security XUserID
+// @Param X-User-ID header string true "Authenticated user ID returned by login"
+// @Param page query int false "Page number. Default: 1"
+// @Param limit query int false "Items per page. Default: 10"
+// @Param category query string false "Filter by category. Allowed: Food, Transport, Housing, Entertainment, Shopping, Healthcare, Education, Utilities, Other."
+// @Param date_from query string false "Only include expenses on or after this date. Format: YYYY-MM-DD"
+// @Param date_to query string false "Only include expenses on or before this date. Format: YYYY-MM-DD"
+// @Param sort_by query string false "Sort field. Allowed: amount, expense_date"
+// @Param sort_order query string false "Sort order. Allowed: asc, desc. Default: desc"
+// @Success 200 {object} controllers.ExpenseListSuccessResponse "Expenses retrieved"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid query parameter"
+// @Failure 401 {object} controllers.ErrorResponse "Unauthorized"
+// @Failure 500 {object} controllers.ErrorResponse "Internal server error"
+// @router /expenses [get]
 func (c *ExpenseController) List() {
 	userID, ok := c.getAuthenticatedUserID()
 	if !ok {
@@ -103,6 +132,18 @@ func (c *ExpenseController) List() {
 }
 
 // Summary returns spending totals for the authenticated user in a date range.
+// @Title ExpenseSummary
+// @Summary Generate spending summary
+// @Description Returns total spending and category breakdown for authenticated user's expenses in an inclusive date range.
+// @Security XUserID
+// @Param X-User-ID header string true "Authenticated user ID returned by login"
+// @Param date_from query string true "Start date. Format: YYYY-MM-DD"
+// @Param date_to query string true "End date. Format: YYYY-MM-DD"
+// @Success 200 {object} controllers.ExpenseSummarySuccessResponse "Summary generated"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid query parameter"
+// @Failure 401 {object} controllers.ErrorResponse "Unauthorized"
+// @Failure 500 {object} controllers.ErrorResponse "Internal server error"
+// @router /expenses/summary [get]
 func (c *ExpenseController) Summary() {
 	userID, ok := c.getAuthenticatedUserID()
 	if !ok {
@@ -126,6 +167,18 @@ func (c *ExpenseController) Summary() {
 }
 
 // GetOne returns one expense owned by the authenticated user.
+// @Title GetExpense
+// @Summary Get one expense
+// @Description Returns one expense only when it belongs to the authenticated user.
+// @Security XUserID
+// @Param X-User-ID header string true "Authenticated user ID returned by login"
+// @Param id path int true "Expense ID"
+// @Success 200 {object} controllers.ExpenseSuccessResponse "Expense retrieved"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid expense ID"
+// @Failure 401 {object} controllers.ErrorResponse "Unauthorized"
+// @Failure 404 {object} controllers.ErrorResponse "Expense not found"
+// @Failure 500 {object} controllers.ErrorResponse "Internal server error"
+// @router /expenses/:id [get]
 func (c *ExpenseController) GetOne() {
 	userID, ok := c.getAuthenticatedUserID()
 	if !ok {
@@ -153,6 +206,20 @@ func (c *ExpenseController) GetOne() {
 }
 
 // Update updates an expense owned by the authenticated user.
+// @Title UpdateExpense
+// @Summary Update an expense
+// @Description Updates one expense only when it belongs to the authenticated user.
+// @Accept json
+// @Security XUserID
+// @Param X-User-ID header string true "Authenticated user ID returned by login"
+// @Param id path int true "Expense ID"
+// @Param body body controllers.ExpenseRequest true "Expense request. Allowed categories: Food, Transport, Housing, Entertainment, Shopping, Healthcare, Education, Utilities, Other."
+// @Success 200 {object} controllers.ExpenseSuccessResponse "Expense updated successfully"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid request body, validation error, or invalid expense ID"
+// @Failure 401 {object} controllers.ErrorResponse "Unauthorized"
+// @Failure 404 {object} controllers.ErrorResponse "Expense not found"
+// @Failure 500 {object} controllers.ErrorResponse "Failed to update expense"
+// @router /expenses/:id [put]
 func (c *ExpenseController) Update() {
 	userID, ok := c.getAuthenticatedUserID()
 	if !ok {
@@ -194,6 +261,18 @@ func (c *ExpenseController) Update() {
 }
 
 // Delete deletes an expense owned by the authenticated user.
+// @Title DeleteExpense
+// @Summary Delete an expense
+// @Description Deletes one expense only when it belongs to the authenticated user.
+// @Security XUserID
+// @Param X-User-ID header string true "Authenticated user ID returned by login"
+// @Param id path int true "Expense ID"
+// @Success 200 {object} controllers.SuccessResponse "Expense deleted successfully"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid expense ID"
+// @Failure 401 {object} controllers.ErrorResponse "Unauthorized"
+// @Failure 404 {object} controllers.ErrorResponse "Expense not found"
+// @Failure 500 {object} controllers.ErrorResponse "Failed to delete expense"
+// @router /expenses/:id [delete]
 func (c *ExpenseController) Delete() {
 	userID, ok := c.getAuthenticatedUserID()
 	if !ok {

@@ -25,6 +25,16 @@ type loginResponse struct {
 }
 
 // Register creates a new user account.
+// @Title Register
+// @Summary Register a user
+// @Description Creates a new user account. Passwords are hashed internally and never returned.
+// @Accept json
+// @Param body body controllers.RegisterRequest true "Register request"
+// @Success 201 {object} controllers.SuccessResponse "User registered successfully"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid request body or validation error"
+// @Failure 409 {object} controllers.ErrorResponse "Email already exists"
+// @Failure 500 {object} controllers.ErrorResponse "Internal server error"
+// @router /auth/register [post]
 func (c *AuthController) Register() {
 	input, ok := c.parseRegisterInput()
 	if !ok {
@@ -65,6 +75,16 @@ func (c *AuthController) Register() {
 }
 
 // Login authenticates a user with email and password.
+// @Title Login
+// @Summary Login a user
+// @Description Authenticates a user and returns user_id. Use user_id as the X-User-ID header for expense endpoints.
+// @Accept json
+// @Param body body controllers.LoginRequest true "Login request"
+// @Success 200 {object} controllers.LoginSuccessResponse "Login successful"
+// @Failure 400 {object} controllers.ErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} controllers.ErrorResponse "Invalid email or password"
+// @Failure 500 {object} controllers.ErrorResponse "Internal server error"
+// @router /auth/login [post]
 func (c *AuthController) Login() {
 	input, ok := c.parseLoginInput()
 	if !ok {

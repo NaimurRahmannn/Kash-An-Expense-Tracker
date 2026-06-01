@@ -1,0 +1,891 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Expense Tracker API",
+    "description": "REST API for personal expense tracking with CSV local storage and optional Postgres production storage.",
+    "version": "1.0.0"
+  },
+  "basePath": "/api/v1",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login a user",
+        "description": "Authenticates a user and returns user_id. Use user_id as the X-User-ID header for expense endpoints.\n<br>",
+        "operationId": "AuthController.Login",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Login request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/controllers.LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "\"Login successful\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.LoginSuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body or validation error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Invalid email or password",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a user",
+        "description": "Creates a new user account. Passwords are hashed internally and never returned.\n<br>",
+        "operationId": "AuthController.Register",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Register request",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/controllers.RegisterRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "\"User registered successfully\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.SuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body or validation error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Email already exists",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/expenses": {
+      "get": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "List expenses",
+        "description": "Returns authenticated user's expenses with optional pagination, filtering, and sorting.\n<br>",
+        "operationId": "ExpenseController.ListExpenses",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-ID",
+            "description": "Authenticated user ID returned by login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "description": "Page number. Default: 1",
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Items per page. Default: 10",
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "description": "Filter by category. Allowed: Food, Transport, Housing, Entertainment, Shopping, Healthcare, Education, Utilities, Other.",
+            "type": "string",
+            "enum": [
+              "Food",
+              "Transport",
+              "Housing",
+              "Entertainment",
+              "Shopping",
+              "Healthcare",
+              "Education",
+              "Utilities",
+              "Other"
+            ]
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "description": "Only include expenses on or after this date. Format: YYYY-MM-DD",
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "description": "Only include expenses on or before this date. Format: YYYY-MM-DD",
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "description": "Sort field. Allowed: amount, expense_date",
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "sort_order",
+            "description": "Sort order. Allowed: asc, desc. Default: desc",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "\"Expenses retrieved\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseListSuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid query parameter",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "XUserID": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      },
+      "post": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Create an expense",
+        "description": "Creates an expense for the authenticated user. Use the user_id returned by login as X-User-ID.\n<br>",
+        "operationId": "ExpenseController.CreateExpense",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-ID",
+            "description": "Authenticated user ID returned by login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Expense request. Allowed categories: Food, Transport, Housing, Entertainment, Shopping, Healthcare, Education, Utilities, Other.",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "\"Expense created successfully\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseSuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body or validation error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "XUserID": []
+          }
+        ]
+      }
+    },
+    "/expenses/summary": {
+      "get": {
+        "tags": [
+          "Summary"
+        ],
+        "summary": "Generate spending summary",
+        "description": "Returns total spending and category breakdown for authenticated user's expenses in an inclusive date range.\n<br>",
+        "operationId": "ExpenseController.ExpenseSummary",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-ID",
+            "description": "Authenticated user ID returned by login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "description": "Start date. Format: YYYY-MM-DD",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "description": "End date. Format: YYYY-MM-DD",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "\"Summary generated\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseSummarySuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid query parameter",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "XUserID": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/expenses/{id}": {
+      "get": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Get one expense",
+        "description": "Returns one expense only when it belongs to the authenticated user.\n<br>",
+        "operationId": "ExpenseController.GetExpense",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-ID",
+            "description": "Authenticated user ID returned by login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Expense ID",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "\"Expense retrieved\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseSuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid expense ID",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Expense not found",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "XUserID": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      },
+      "put": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Update an expense",
+        "description": "Updates one expense only when it belongs to the authenticated user.\n<br>",
+        "operationId": "ExpenseController.UpdateExpense",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-ID",
+            "description": "Authenticated user ID returned by login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Expense ID",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Expense request. Allowed categories: Food, Transport, Housing, Entertainment, Shopping, Healthcare, Education, Utilities, Other.",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "\"Expense updated successfully\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.ExpenseSuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body, validation error, or invalid expense ID",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Expense not found",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Failed to update expense",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "XUserID": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Expenses"
+        ],
+        "summary": "Delete an expense",
+        "description": "Deletes one expense only when it belongs to the authenticated user.\n<br>",
+        "operationId": "ExpenseController.DeleteExpense",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-ID",
+            "description": "Authenticated user ID returned by login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Expense ID",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "\"Expense deleted successfully\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.SuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid expense ID",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Expense not found",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Failed to delete expense",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "XUserID": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Check server health",
+        "description": "Returns a basic success response when the API server is running.\n<br>",
+        "operationId": "HealthController.HealthCheck",
+        "responses": {
+          "200": {
+            "description": "\"Server is running\"",
+            "schema": {
+              "$ref": "#/definitions/controllers.SuccessResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/controllers.ErrorResponse"
+            }
+          }
+        },
+        "produces": [
+          "application/json"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "controllers.CategorySummaryResponse": {
+      "title": "CategorySummaryResponse",
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "total": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "controllers.ExpenseListSuccessResponse": {
+      "title": "ExpenseListSuccessResponse",
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/controllers.ExpenseResponse"
+          }
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "controllers.ExpenseRequest": {
+      "title": "ExpenseRequest",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "example": 350.5
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Food",
+            "Transport",
+            "Housing",
+            "Entertainment",
+            "Shopping",
+            "Healthcare",
+            "Education",
+            "Utilities",
+            "Other"
+          ],
+          "example": "Food"
+        },
+        "expense_date": {
+          "type": "string",
+          "example": "2025-06-10"
+        },
+        "note": {
+          "type": "string",
+          "example": "Team lunch"
+        },
+        "title": {
+          "type": "string",
+          "example": "Lunch"
+        }
+      }
+    },
+    "controllers.ExpenseResponse": {
+      "title": "ExpenseResponse",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "example": 350.5
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Food",
+            "Transport",
+            "Housing",
+            "Entertainment",
+            "Shopping",
+            "Healthcare",
+            "Education",
+            "Utilities",
+            "Other"
+          ],
+          "example": "Food"
+        },
+        "expense_date": {
+          "type": "string",
+          "example": "2025-06-10"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1
+        },
+        "note": {
+          "type": "string",
+          "example": "Team lunch"
+        },
+        "title": {
+          "type": "string",
+          "example": "Lunch"
+        }
+      }
+    },
+    "controllers.ExpenseSuccessResponse": {
+      "title": "ExpenseSuccessResponse",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/controllers.ExpenseResponse"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "controllers.ExpenseSummaryResponse": {
+      "title": "ExpenseSummaryResponse",
+      "type": "object",
+      "properties": {
+        "by_category": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/controllers.CategorySummaryResponse"
+          }
+        },
+        "date_from": {
+          "type": "string"
+        },
+        "date_to": {
+          "type": "string"
+        },
+        "total_amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "controllers.ExpenseSummarySuccessResponse": {
+      "title": "ExpenseSummarySuccessResponse",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/controllers.ExpenseSummaryResponse"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "controllers.LoginData": {
+      "title": "LoginData",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "controllers.LoginRequest": {
+      "title": "LoginRequest",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "john@example.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "secret123"
+        }
+      }
+    },
+    "controllers.LoginSuccessResponse": {
+      "title": "LoginSuccessResponse",
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/controllers.LoginData"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "controllers.RegisterRequest": {
+      "title": "RegisterRequest",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "john@example.com"
+        },
+        "name": {
+          "type": "string",
+          "example": "John Doe"
+        },
+        "password": {
+          "type": "string",
+          "example": "secret123"
+        }
+      }
+    },
+    "controllers.SuccessResponse": {
+      "title": "SuccessResponse",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Success message"
+        },
+        "success": {
+          "type": "boolean",
+          "example": true
+        }
+      }
+    },
+    "controllers.ErrorResponse": {
+      "title": "ErrorResponse",
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": false
+        },
+        "message": {
+          "type": "string",
+          "example": "Error message"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "XUserID": {
+      "type": "apiKey",
+      "description": "Use user_id returned by login as the X-User-ID header for expense endpoints.",
+      "name": "X-User-ID",
+      "in": "header"
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Server health check."
+    },
+    {
+      "name": "Auth",
+      "description": "Registration and login. Use returned user_id as X-User-ID for expense endpoints."
+    },
+    {
+      "name": "Expenses",
+      "description": "Expense create, list, get, update, and delete operations."
+    },
+    {
+      "name": "Summary",
+      "description": "Spending summary grouped by category."
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ]
+}

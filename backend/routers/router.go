@@ -2,12 +2,22 @@ package routers
 
 import (
 	"backend/controllers"
+	"backend/docs"
 
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
 )
 
+// @Title Expense Tracker API
+// @Description REST API for personal expense tracking with CSV local storage and optional Postgres production storage.
+// @APIVersion 1.0.0
+// @Schemes http
+// @SecurityDefinition XUserID apiKey X-User-ID header "Use user_id returned by login as the X-User-ID header for expense endpoints."
 func init() {
+	if swaggerEnabled() {
+		docs.RegisterSwaggerRoutes()
+	}
+
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowOrigins: []string{
 			"http://localhost:3000",
@@ -41,4 +51,19 @@ func init() {
 	)
 
 	beego.AddNamespace(ns)
+}
+
+func swaggerEnabled() bool {
+	enabled, err := beego.AppConfig.Bool("enable_swagger")
+	return err == nil && enabled
+}
+
+func swaggerDocsNamespace() {
+	_ = beego.NewNamespace("/api/v1",
+		beego.NSInclude(
+			&controllers.HealthController{},
+			&controllers.AuthController{},
+			&controllers.ExpenseController{},
+		),
+	)
 }
