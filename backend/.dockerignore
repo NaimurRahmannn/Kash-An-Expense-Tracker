@@ -1,0 +1,16 @@
+.git
+.gitignore
+coverage
+coverage.out
+*.cover
+*.exe
+*.exe~
+backend.exe
+data/*.csv
+!data/.gitkeep
+.env
+.env.local
+tmp/
+dist/
+node_modules/
+README.old.md

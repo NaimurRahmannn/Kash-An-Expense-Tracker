@@ -7,9 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"backend/config"
 	"backend/utils"
-
-	beego "github.com/beego/beego/v2/server/web"
 )
 
 // User represents an application user stored in CSV.
@@ -146,12 +145,7 @@ func getUserCSVFilePath() (string, error) {
 		return userCSVFilePathOverride, nil
 	}
 
-	filePath, err := beego.AppConfig.String("csv_user_file")
-	if err != nil {
-		return "", err
-	}
-
-	filePath = strings.TrimSpace(filePath)
+	filePath := strings.TrimSpace(config.GetCSVUserFile())
 	if filePath == "" {
 		return "", errors.New("csv_user_file is not configured")
 	}

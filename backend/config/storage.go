@@ -56,6 +56,16 @@ func GetPostgresDSN() string {
 	return getStringConfig("postgres_dsn", "POSTGRES_DSN")
 }
 
+// GetCSVUserFile returns the configured CSV user file path.
+func GetCSVUserFile() string {
+	return getStringConfig("csv_user_file", "CSV_USER_FILE")
+}
+
+// GetCSVExpenseFile returns the configured CSV expense file path.
+func GetCSVExpenseFile() string {
+	return getStringConfig("csv_expense_file", "CSV_EXPENSE_FILE")
+}
+
 // IsPostgresAutoMigrateEnabled reports whether future Postgres auto-migration is enabled.
 func IsPostgresAutoMigrateEnabled() bool {
 	envValue := strings.TrimSpace(os.Getenv("POSTGRES_AUTO_MIGRATE"))

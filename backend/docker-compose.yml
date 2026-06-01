@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      STORAGE_DRIVER: "csv"
+      CSV_USER_FILE: "data/users.csv"
+      CSV_EXPENSE_FILE: "data/expenses.csv"
+    volumes:
+      - expense_csv_data:/app/data
+
+volumes:
+  expense_csv_data:

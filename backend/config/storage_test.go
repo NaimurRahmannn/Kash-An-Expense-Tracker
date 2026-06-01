@@ -211,6 +211,28 @@ func TestStorageEnvironmentOverrides(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "csv user file environment overrides app config",
+			run: func(t *testing.T) {
+				useTestStringConfig(t, map[string]string{"csv_user_file": "data/users.csv"}, false)
+				t.Setenv("CSV_USER_FILE", " /app/data/users.csv ")
+
+				if got := GetCSVUserFile(); got != "/app/data/users.csv" {
+					t.Fatalf("expected CSV user file %q, got %q", "/app/data/users.csv", got)
+				}
+			},
+		},
+		{
+			name: "csv expense file environment overrides app config",
+			run: func(t *testing.T) {
+				useTestStringConfig(t, map[string]string{"csv_expense_file": "data/expenses.csv"}, false)
+				t.Setenv("CSV_EXPENSE_FILE", " /app/data/expenses.csv ")
+
+				if got := GetCSVExpenseFile(); got != "/app/data/expenses.csv" {
+					t.Fatalf("expected CSV expense file %q, got %q", "/app/data/expenses.csv", got)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -227,6 +249,8 @@ func clearStorageEnvironment(t *testing.T) {
 	t.Setenv("STORAGE_DRIVER", "")
 	t.Setenv("POSTGRES_DSN", "")
 	t.Setenv("POSTGRES_AUTO_MIGRATE", "")
+	t.Setenv("CSV_USER_FILE", "")
+	t.Setenv("CSV_EXPENSE_FILE", "")
 }
 
 func useTestStringConfig(t *testing.T, values map[string]string, readError bool) {

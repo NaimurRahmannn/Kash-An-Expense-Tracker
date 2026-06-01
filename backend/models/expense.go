@@ -7,9 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"backend/config"
 	"backend/utils"
-
-	beego "github.com/beego/beego/v2/server/web"
 )
 
 // Expense represents a user's expense stored in CSV.
@@ -245,12 +244,7 @@ func getExpenseCSVFilePath() (string, error) {
 		return expenseCSVFilePathOverride, nil
 	}
 
-	filePath, err := beego.AppConfig.String("csv_expense_file")
-	if err != nil {
-		return "", err
-	}
-
-	filePath = strings.TrimSpace(filePath)
+	filePath := strings.TrimSpace(config.GetCSVExpenseFile())
 	if filePath == "" {
 		return "", errors.New("csv_expense_file is not configured")
 	}

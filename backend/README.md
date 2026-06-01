@@ -33,6 +33,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Request Examples](#request-examples)
 - [Postman Testing](#postman-testing)
 - [Swagger / API Documentation](#swagger--api-documentation)
+- [Docker Usage](#docker-usage)
 - [Deployment Guide](#deployment-guide)
 - [Repository Integration](#repository-integration)
 - [Storage Modes](#storage-modes)
@@ -71,6 +72,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Postgres expense repository | Implemented |
 | Repository integration | Controllers use repository factory |
 | Swagger API documentation | Yes |
+| Docker backend packaging | Yes |
 
 ## Tech Stack
 
@@ -80,13 +82,16 @@ This API provides the required backend for a Personal Expense Tracker assignment
 | Beego v2 | Web framework and routing |
 | CSV | Required assignment storage |
 | Postgres | Optional production storage driver |
+| Docker | Backend containerization |
 | Go testing package | Unit and integration-style tests |
 
 ## Project Structure
 
 ```text
 backend/
+|-- .dockerignore
 |-- .env.example
+|-- Dockerfile
 |-- conf/
 |   |-- app.conf
 |   `-- app.prod.example.conf
@@ -105,6 +110,8 @@ backend/
 |-- utils/
 |-- validators/
 |-- main.go
+|-- docker-compose.yml
+|-- docker-compose.postgres.yml
 |-- go.mod
 |-- go.sum
 `-- README.md
@@ -476,6 +483,126 @@ The served JSON spec is available at:
 
 ```text
 http://localhost:8080/swagger/doc.json
+```
+
+## Docker Usage
+
+Docker is configured for the backend only. Run these commands from the `backend/` folder after opening Docker Desktop.
+
+### Build Image Manually
+
+```bash
+cd backend
+docker build -t expense-tracker-api .
+```
+
+### Run With CSV Storage
+
+```bash
+cd backend
+docker compose up --build
+```
+
+Test the running container:
+
+```bash
+curl http://localhost:8080/api/v1/health
+```
+
+Expected response:
+
+```json
+{
+  "success": true,
+  "message": "Server is running"
+}
+```
+
+CSV mode is the default Docker mode. It stores generated CSV files in a named Docker volume and does not require Postgres.
+
+Stop CSV mode:
+
+```bash
+docker compose down
+```
+
+Remove the CSV Docker volume:
+
+```bash
+docker compose down -v
+```
+
+### Run With Local Postgres
+
+```bash
+cd backend
+docker compose -f docker-compose.postgres.yml up --build
+```
+
+This starts a local Postgres container, sets `STORAGE_DRIVER=postgres`, and enables `POSTGRES_AUTO_MIGRATE=true` so the backend can create required tables.
+
+Stop local Postgres mode:
+
+```bash
+docker compose -f docker-compose.postgres.yml down
+```
+
+Remove the local Postgres volume:
+
+```bash
+docker compose -f docker-compose.postgres.yml down -v
+```
+
+### Run With Neon Postgres
+
+Bash:
+
+```bash
+docker run --name expense-tracker-api \
+  -p 8080:8080 \
+  -e PORT=8080 \
+  -e STORAGE_DRIVER=postgres \
+  -e POSTGRES_DSN="YOUR_NEON_CONNECTION_STRING" \
+  -e POSTGRES_AUTO_MIGRATE=true \
+  expense-tracker-api
+```
+
+PowerShell:
+
+```powershell
+docker run --name expense-tracker-api `
+  -p 8080:8080 `
+  -e PORT=8080 `
+  -e STORAGE_DRIVER=postgres `
+  -e POSTGRES_DSN="YOUR_NEON_CONNECTION_STRING" `
+  -e POSTGRES_AUTO_MIGRATE=true `
+  expense-tracker-api
+```
+
+Replace `YOUR_NEON_CONNECTION_STRING` with the real Neon DSN and keep it out of Git. Neon usually requires `sslmode=require`.
+
+### Docker Desktop Notes
+
+- Open Docker Desktop before running Docker commands.
+- After `docker compose up`, check Docker Desktop -> Containers for logs.
+- API base URL: `http://localhost:8080`.
+- Swagger UI, when enabled: `http://localhost:8080/swagger/`.
+- The frontend remains deployed separately on Vercel and is not Dockerized here.
+
+### Render And Vercel Alignment
+
+Render backend environment variables:
+
+```bash
+STORAGE_DRIVER=postgres
+POSTGRES_DSN=<Neon connection string>
+POSTGRES_AUTO_MIGRATE=true
+```
+
+Vercel frontend environment variable:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api/v1
 ```
 
 ## Deployment Guide
@@ -856,4 +983,4 @@ The project includes unit and integration-style tests for controllers, models, v
 
 - Passwords are hashed with bcrypt before being stored in CSV or Postgres.
 - Postgres storage is wired for production mode, while CSV remains the default for local assignment runs.
-- Docker, frontend, voice input, budget features, and export features are not included.
+- Frontend containerization, voice input, budget features, and export features are not included.
