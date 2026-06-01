@@ -7,6 +7,7 @@ import (
 
 	"backend/models"
 	"backend/repositories"
+	"backend/utils"
 	"backend/validators"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -42,10 +43,17 @@ func (c *AuthController) Register() {
 		return
 	}
 
+	hashedPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		logs.Error("failed to hash password: %v", err)
+		c.ErrorResponse(http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+
 	user := &models.User{
 		Name:     input.Name,
 		Email:    input.Email,
-		Password: input.Password,
+		Password: hashedPassword,
 	}
 	if err := userRepo.CreateUser(user); err != nil {
 		logs.Error("failed to create user: %v", err)
@@ -69,7 +77,7 @@ func (c *AuthController) Login() {
 		c.ErrorResponse(http.StatusInternalServerError, "Internal server error")
 		return
 	}
-	if user == nil || user.Password != input.Password {
+	if user == nil || !utils.CheckPasswordHash(input.Password, user.Password) {
 		c.ErrorResponse(http.StatusUnauthorized, "Invalid email or password")
 		return
 	}

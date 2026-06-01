@@ -800,10 +800,18 @@ The project includes unit and integration-style tests for controllers, models, v
 ![Test coverage result](../docs/images/test-coverage3.png)
 ![Test coverage result](../docs/images/test-coverage4.png)
 
+## Password Security
+
+- Passwords are hashed with bcrypt before storage.
+- CSV mode stores bcrypt hashes in `data/users.csv`.
+- Postgres mode stores bcrypt hashes in `users.password`.
+- Plain-text passwords are never returned in API responses.
+- Local users created before bcrypt was added may need to be recreated. Delete `data/users.csv` and register again.
+
 ## Notes
 
 > This backend intentionally stays assignment-focused and does not include bonus features.
 
-- Passwords are stored as plain text for assignment compatibility at this stage.
+- Passwords are hashed with bcrypt before being stored in CSV or Postgres.
 - Postgres storage is wired for production mode, while CSV remains the default for local assignment runs.
 - Docker, Swagger, frontend, voice input, budget features, and export features are not included.

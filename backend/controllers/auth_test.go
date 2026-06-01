@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"backend/models"
+	"backend/utils"
+
 	beego "github.com/beego/beego/v2/server/web"
 )
 
@@ -39,6 +42,29 @@ func TestRegisterSuccessReturnsCreated(t *testing.T) {
 	}
 	if response.Message != "User registered successfully" {
 		t.Fatalf("expected message %q, got %q", "User registered successfully", response.Message)
+	}
+	if strings.Contains(rec.Body.String(), "password") {
+		t.Fatal("expected register response to omit password")
+	}
+}
+
+func TestRegisterStoresHashedPassword(t *testing.T) {
+	useTempUserCSVConfig(t)
+
+	postJSON("/api/v1/auth/register", `{"name":"John Doe","email":"john@example.com","password":"secret123"}`)
+
+	user, err := models.GetUserByEmail("john@example.com")
+	if err != nil {
+		t.Fatalf("expected user lookup to succeed: %v", err)
+	}
+	if user == nil {
+		t.Fatal("expected user to be stored")
+	}
+	if user.Password == "secret123" {
+		t.Fatal("expected stored password to be hashed")
+	}
+	if !utils.CheckPasswordHash("secret123", user.Password) {
+		t.Fatal("expected stored password to match bcrypt hash")
 	}
 }
 
@@ -166,6 +192,23 @@ func TestLoginWrongPasswordReturnsUnauthorized(t *testing.T) {
 
 	postJSON("/api/v1/auth/register", `{"name":"John Doe","email":"john@example.com","password":"secret123"}`)
 	rec := postJSON("/api/v1/auth/login", `{"email":"john@example.com","password":"wrongpassword"}`)
+	response := decodeAuthResponse(t, rec)
+
+	assertErrorResponse(t, rec.Code, response, http.StatusUnauthorized, "Invalid email or password")
+}
+
+func TestLoginPlaintextPasswordReturnsUnauthorized(t *testing.T) {
+	useTempUserCSVConfig(t)
+
+	if err := models.CreateUser(&models.User{
+		Name:     "John Doe",
+		Email:    "john@example.com",
+		Password: "secret123",
+	}); err != nil {
+		t.Fatalf("expected user to be seeded: %v", err)
+	}
+
+	rec := postJSON("/api/v1/auth/login", `{"email":"john@example.com","password":"secret123"}`)
 	response := decodeAuthResponse(t, rec)
 
 	assertErrorResponse(t, rec.Code, response, http.StatusUnauthorized, "Invalid email or password")
