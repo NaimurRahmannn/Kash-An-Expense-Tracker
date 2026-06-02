@@ -21,6 +21,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 
 ## Table of Contents
 
+- [Live URLs](#live-urls)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -50,6 +51,11 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Testing](#testing)
 - [Test Coverage](#test-coverage)
 - [Notes](#notes)
+
+## Live URLs
+
+- Backend (Render): https://kash-wq9x.onrender.com
+- Frontend (Vercel): https://kash-an-expense-tracker.vercel.app
 
 ## Features
 
@@ -578,6 +584,14 @@ Vercel frontend environment variable:
 NEXT_PUBLIC_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api/v1
 ```
 
+## Deployment Platform Notes
+
+### Neon Postgres
+
+- Use the pooled Neon connection string (it already includes `sslmode=require`).
+- Set the string in Render as `POSTGRES_DSN` and keep credentials out of the repo.
+- If you rotate the Neon password, update Render env vars and redeploy.
+
 ## Deployment Guide
 
 The backend has two storage modes with the same API contract: CSV for local assignment review and Postgres for production deployment.
@@ -940,4 +954,4 @@ The project includes unit and integration-style tests for controllers, models, v
 
 ## Notes
 
-> This backend intentionally stays assignment-focused and does not include some extra features
+> This backend intentionally stays assignment-focused
