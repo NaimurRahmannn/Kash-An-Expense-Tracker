@@ -8,5 +8,5 @@ storage_driver = csv
 csv_user_file = data/users.csv
 csv_expense_file = data/expenses.csv
 
-postgres_dsn =
+postgres_dsn = postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require
 postgres_auto_migrate = false
