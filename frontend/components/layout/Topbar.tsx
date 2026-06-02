@@ -66,17 +66,7 @@ export function Topbar({ title }: TopbarProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
       
 
-          <div className="relative w-full sm:w-67.5">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              aria-hidden="true"
-            />
-            <Input
-              aria-label="Search expenses"
-              placeholder="Search expenses..."
-              className="h-12 rounded-2xl pl-11"
-            />
-          </div>
+        
 
           <button
             type="button"
