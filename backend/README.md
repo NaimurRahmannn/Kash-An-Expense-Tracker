@@ -811,8 +811,6 @@ storage_driver = postgres
 
 This design keeps the local assignment experience simple while making the deployed version more reliable.
 
-## Architecture:
-
 ![architecture](../docs/images/storage_configuration.png)
 
 Controllers do not know whether data comes from CSV or Postgres. The API response format stays the same, the same endpoints work in both storage modes, and the repository factory selects the correct implementation based on `storage_driver`.

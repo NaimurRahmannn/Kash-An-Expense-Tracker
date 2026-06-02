@@ -1,6 +1,6 @@
 # Kash — Personal Expense Tracker
 
-A full-stack personal expense tracker built for the internship assignment, with a Go + Beego backend, CSV-based local storage, optional Postgres production storage, and a Next.js frontend with dashboard, expense management, and voice input bonus feature.
+A personal expense tracker built for the internship assignment, with a Go + Beego backend, CSV-based local storage, optional Postgres production storage, and a Next.js frontend with dashboard, expense management, and voice input feature.
 
 ![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Beego](https://img.shields.io/badge/Beego-v2-2D3748?style=for-the-badge)
@@ -24,7 +24,7 @@ A full-stack personal expense tracker built for the internship assignment, with 
 - The frontend is a bonus UI built with Next.js and TypeScript.
 - CSV storage remains the default for local and trainer review.
 - Postgres is used for production deployment (hosted on Neon).
-- Voice input is included as a bonus feature in the frontend.
+- Voice input is included in the frontend.
 
 ## Repository Structure
 
