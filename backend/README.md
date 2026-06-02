@@ -41,7 +41,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Postgres Production Preparation](#postgres-production-preparation)
 - [Postgres User Repository](#postgres-user-repository)
 - [Postgres Expense Repository](#postgres-expense-repository)
-- [Architecture Decision: Configurable Storage Driver](#engineering-decision-configurable-storage-driver)
+- [Architecture Decision: Configurable Storage Driver](#architecture-decision-configurable-storage-driver)
 - [CSV Storage](#csv-storage)
 - [Production Checklist](#production-checklist)
 - [Trainer / Local Review Checklist](#trainer--local-review-checklist)
