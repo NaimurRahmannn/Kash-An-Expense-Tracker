@@ -25,7 +25,7 @@ The backend uses Go + Beego and stores data in CSV as part of the assignment req
 - [Backend Contract](#backend-contract)
 - [Getting Started](#getting-started)
 - [Environment](#environment)
-- [Engineering Decisions](#engineering-decisions)
+- [Design Decisions](#design-decisions)
 - [Voice Input Format](#voice-input-format)
 - [Feature Design Rationale](#feature-design-rationale)
 - [Current Status](#current-status)
@@ -151,7 +151,7 @@ https://YOUR_RENDER_BACKEND_URL/api/v1/health
 
 After changing `NEXT_PUBLIC_API_BASE_URL` in Vercel, redeploy the frontend so Next.js bakes the new public environment variable into the client bundle.
 
-## Engineering Decisions
+## Design Decisions
 
 ### 1. Strict Voice Input Format Instead Of Free-Form NLP
 
@@ -322,26 +322,21 @@ Chart library integration is not implemented yet.
 
 | Limitation | Reason |
 | --- | --- |
-| `localStorage` auth | Matches assignment backend, not production-grade auth |
 | No JWT/session token | Backend does not provide token/session auth |
 | No profile update | Backend does not expose profile update endpoint |
 | No total page count | Backend list API returns only an array |
 | Strict voice parsing | Chosen intentionally for reliability |
 | Browser-dependent voice input | Depends on Web Speech API support |
-| Limited frontend search | Backend full-text search is not implemented |
 
 ## Future Improvements
 
 - JWT authentication
-- Backend pagination metadata
-- Full-text search
 - Better analytics charts
 - Dark mode
 - CSV export
 - Improved voice command support
 - Toast notification system
 - Profile update support if backend adds an endpoint
-- Deployment guide
 
 ## API Routes Used
 
