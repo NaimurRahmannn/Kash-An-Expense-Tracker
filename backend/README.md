@@ -958,7 +958,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
 
 ## Test Coverage
 
-Total statement coverage: **92.4%**
+Total statement coverage: **91.3%**
 
 The project includes unit and integration-style tests for controllers, models, validators, CSV utilities, and route registration.
 
@@ -967,7 +967,6 @@ The project includes unit and integration-style tests for controllers, models, v
 ![Test coverage result](../docs/images/test-coverage1.png)
 ![Test coverage result](../docs/images/test-coverage2.png)
 ![Test coverage result](../docs/images/test-coverage3.png)
-![Test coverage result](../docs/images/test-coverage4.png)
 
 ## Password Security
 
