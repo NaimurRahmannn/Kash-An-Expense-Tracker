@@ -553,33 +553,6 @@ Remove the local Postgres volume:
 docker compose -f docker-compose.postgres.yml down -v
 ```
 
-### Run With Neon Postgres
-
-Bash:
-
-```bash
-docker run --name expense-tracker-api \
-  -p 8080:8080 \
-  -e PORT=8080 \
-  -e STORAGE_DRIVER=postgres \
-  -e POSTGRES_DSN="YOUR_NEON_CONNECTION_STRING" \
-  -e POSTGRES_AUTO_MIGRATE=true \
-  expense-tracker-api
-```
-
-PowerShell:
-
-```powershell
-docker run --name expense-tracker-api `
-  -p 8080:8080 `
-  -e PORT=8080 `
-  -e STORAGE_DRIVER=postgres `
-  -e POSTGRES_DSN="YOUR_NEON_CONNECTION_STRING" `
-  -e POSTGRES_AUTO_MIGRATE=true `
-  expense-tracker-api
-```
-
-Replace `YOUR_NEON_CONNECTION_STRING` with the real Neon DSN and keep it out of Git. Neon usually requires `sslmode=require`.
 
 ### Docker Desktop Notes
 
@@ -810,7 +783,7 @@ Supported expense operations:
 
 The repository is tested with SQL mocks, so local tests do not require a live Postgres database. CSV remains the default storage driver, and the repository factory switches to Postgres only when `storage_driver = postgres`.
 
-## Configurable Storage Driver
+## Architecture Decision: Configurable Storage Driver
 
 This project intentionally uses a configurable storage driver instead of hardcoding one storage system.
 
@@ -824,20 +797,9 @@ storage_driver = postgres
 
 This design keeps the local assignment experience simple while making the deployed version more reliable.
 
-Architecture:
+## Architecture:
 
-```text
-HTTP Request
-   |
-Controller
-   |
-Repository Interface
-   |
-Storage Driver Factory
-   |
-CSV Repository        Postgres Repository
-(local assignment)    (production deployment)
-```
+![architecture](../docs/images/storage_configuration.png)
 
 Controllers do not know whether data comes from CSV or Postgres. The API response format stays the same, the same endpoints work in both storage modes, and the repository factory selects the correct implementation based on `storage_driver`.
 
@@ -978,8 +940,4 @@ The project includes unit and integration-style tests for controllers, models, v
 
 ## Notes
 
-> This backend intentionally stays assignment-focused and does not include bonus features.
-
-- Passwords are hashed with bcrypt before being stored in CSV or Postgres.
-- Postgres storage is wired for production mode, while CSV remains the default for local assignment runs.
-- Frontend containerization, voice input, budget features, and export features are not included.
+> This backend intentionally stays assignment-focused and does not include some extra features
