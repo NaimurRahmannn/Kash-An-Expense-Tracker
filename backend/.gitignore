@@ -21,4 +21,3 @@ swagger/
 *.test
 backend.exe
 backend
-app.conf
