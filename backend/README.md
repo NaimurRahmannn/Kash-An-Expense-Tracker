@@ -7,7 +7,7 @@ Personal Expense Tracker backend API built with Go, Beego v2, and CSV storage.
 ![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Beego](https://img.shields.io/badge/Beego-v2-2D3748?style=for-the-badge)
 ![Storage](https://img.shields.io/badge/Storage-CSV-0F766E?style=for-the-badge)
-![Coverage](https://img.shields.io/badge/Coverage-92.1%25-16A34A?style=for-the-badge)
+![Coverage](https://img.shields.io/badge/Coverage-91.3%25-16A34A?style=for-the-badge)
 
 </div>
 
@@ -41,7 +41,7 @@ This API provides the required backend for a Personal Expense Tracker assignment
 - [Postgres Production Preparation](#postgres-production-preparation)
 - [Postgres User Repository](#postgres-user-repository)
 - [Postgres Expense Repository](#postgres-expense-repository)
-- [Engineering Decision: Configurable Storage Driver](#engineering-decision-configurable-storage-driver)
+- [Architecture Decision: Configurable Storage Driver](#engineering-decision-configurable-storage-driver)
 - [CSV Storage](#csv-storage)
 - [Production Checklist](#production-checklist)
 - [Trainer / Local Review Checklist](#trainer--local-review-checklist)
