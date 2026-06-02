@@ -9,7 +9,6 @@ A full-stack personal expense tracker built for the internship assignment, with 
 ![CSV](https://img.shields.io/badge/Storage-CSV-0F766E?style=for-the-badge)
 ![Postgres](https://img.shields.io/badge/Postgres-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Assignment%20Ready-16A34A?style=for-the-badge)
 
 ## Live Demo
 
